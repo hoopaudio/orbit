@@ -1,0 +1,41 @@
+/* 
+  Warm Space Palette
+  Source: https://coolors.co/ff4800-ff5400-ff6000-ff6d00-ff7900-ff8500-ff9100-ff9e00-ffaa00-ffb600
+*/
+
+/* SCSS HEX Variables */
+$tangelo: #ff4800;
+$orange-pantone: #ff5400;
+$orange-pantone-2: #ff6000;
+$pumpkin: #ff6d00;
+$safety-orange: #ff7900;
+$ut-orange: #ff8500;
+$princeton-orange: #ff9100;
+$orange-peel: #ff9e00;
+$orange-web: #ffaa00;
+$selective-yellow: #ffb600;
+
+/* SCSS Gradient Variables */
+$gradient-top: linear-gradient(0deg, #ff4800, #ff5400, #ff6000, #ff6d00, #ff7900, #ff8500, #ff9100, #ff9e00, #ffaa00, #ffb600);
+$gradient-right: linear-gradient(90deg, #ff4800, #ff5400, #ff6000, #ff6d00, #ff7900, #ff8500, #ff9100, #ff9e00, #ffaa00, #ffb600);
+$gradient-bottom: linear-gradient(180deg, #ff4800, #ff5400, #ff6000, #ff6d00, #ff7900, #ff8500, #ff9100, #ff9e00, #ffaa00, #ffb600);
+$gradient-left: linear-gradient(270deg, #ff4800, #ff5400, #ff6000, #ff6d00, #ff7900, #ff8500, #ff9100, #ff9e00, #ffaa00, #ffb600);
+$gradient-top-right: linear-gradient(45deg, #ff4800, #ff5400, #ff6000, #ff6d00, #ff7900, #ff8500, #ff9100, #ff9e00, #ffaa00, #ffb600);
+$gradient-bottom-right: linear-gradient(135deg, #ff4800, #ff5400, #ff6000, #ff6d00, #ff7900, #ff8500, #ff9100, #ff9e00, #ffaa00, #ffb600);
+$gradient-top-left: linear-gradient(225deg, #ff4800, #ff5400, #ff6000, #ff6d00, #ff7900, #ff8500, #ff9100, #ff9e00, #ffaa00, #ffb600);
+$gradient-bottom-left: linear-gradient(315deg, #ff4800, #ff5400, #ff6000, #ff6d00, #ff7900, #ff8500, #ff9100, #ff9e00, #ffaa00, #ffb600);
+$gradient-radial: radial-gradient(#ff4800, #ff5400, #ff6000, #ff6d00, #ff7900, #ff8500, #ff9100, #ff9e00, #ffaa00, #ffb600);
+
+/* CSS Custom Properties for runtime access */
+:root {
+  --tangelo: #ff4800;
+  --orange-pantone: #ff5400;
+  --orange-pantone-2: #ff6000;
+  --pumpkin: #ff6d00;
+  --safety-orange: #ff7900;
+  --ut-orange: #ff8500;
+  --princeton-orange: #ff9100;
+  --orange-peel: #ff9e00;
+  --orange-web: #ffaa00;
+  --selective-yellow: #ffb600;
+}

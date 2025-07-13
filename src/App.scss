@@ -1,30 +1,26 @@
 // Import palette variables
 @use './palette';
-
-// SCSS Variables
-$siri-background: #27272E;
-$siri-text: #b3b3b3;
-$siri-text-placeholder: rgba(179, 179, 179, 0.7);
+@use './warm_space_palette' as warm;
 
 // Mixins
-@mixin glass-effect($opacity: 0.4) {
-  background: linear-gradient(135deg, 
-    rgba(255, 255, 255, 0.1) 0%, 
-    rgba(255, 255, 255, 0.05) 50%, 
-    rgba(255, 255, 255, 0.08) 100%
-  ), 
-  palette.$eerie-black;
+@mixin glass-effect($opacity: 0.4, $base: palette.$onyx) {
+  background: linear-gradient(135deg,
+      rgba(palette.$seasalt, 0.1) 0%,
+      rgba(palette.$seasalt, 0.05) 50%,
+      rgba(palette.$seasalt, 0.08) 100%
+    ),
+    $base;
   backdrop-filter: blur(40px) saturate(180%);
   -webkit-backdrop-filter: blur(40px) saturate(180%);
 }
 
-@mixin siri-glow($color: $siri-background, $opacity: 0.4) {
-  box-shadow: 
-    inset 0 1px 2px rgba(255, 255, 255, 0.1),
-    inset 0 -1px 2px rgba(0, 0, 0, 0.3),
-    0 0 15px rgba($color, $opacity * 1.0),
-    0 0 30px rgba($color, $opacity * 0.6),
-    0 0 45px rgba($color, $opacity * 0.4);
+@mixin warm-glow($opacity: 0.4) {
+  box-shadow:
+    inset 0 1px 2px rgba(palette.$seasalt, 0.1),
+    inset 0 -1px 2px rgba(palette.$onyx, 0.3),
+    0 0 15px rgba(warm.$tangelo, $opacity * 1.0),
+    0 0 30px rgba(warm.$orange-pantone, $opacity * 0.6),
+    0 0 45px rgba(warm.$pumpkin, $opacity * 0.4);
 }
 
 * {
@@ -41,7 +37,7 @@ body {
   -moz-osx-font-smoothing: grayscale;
   background: transparent;
   overflow: hidden;
-  font-size: small;
+  font-size: large;
 }
 
 .orbit-container {
@@ -52,7 +48,7 @@ body {
   justify-content: center;
   background: transparent;
   padding-top: 20px;
-  
+
   // Prevent text selection during drag
   -webkit-user-select: none;
   -moz-user-select: none;
@@ -63,7 +59,8 @@ body {
 .orbit-overlay {
   background: transparent;
   width: 100%;
-  max-width: 450px; /* Proper size for the new window */
+  max-width: 450px;
+  /* Proper size for the new window */
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -85,25 +82,91 @@ body {
   margin: 0 auto;
   cursor: text;
   
-  // Use SCSS mixins for cleaner code
-  @include glass-effect(1.0);
-  @include siri-glow($siri-background, 0.4);
-  
-  animation: siri-glow 3s ease-in-out infinite;
+  @include warm-glow(0.4);
+  animation: warm-pulse 3s ease-in-out infinite;
 }
 
+// Bottom layer: Warm colors underneath
+.warm-background {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 42px;
+  z-index: -2;
+  
+  // Vibrant warm gradient background
+  background: warm.$gradient-right;
+  background-size: 200% auto;
+  filter: saturate(1.5);
+  animation: gradient-flow 8s linear infinite;
+}
 
+// Top layer: Transparent glass with reflections
+.glass-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 42px;
+  z-index: -1;
+  
+  // Glass layer with transparency
+  background: linear-gradient(135deg,
+      rgba(palette.$seasalt, 0.05) 0%,
+      rgba(palette.$seasalt, 0.02) 50%,
+      rgba(palette.$seasalt, 0.04) 100%
+    ),
+    rgba(palette.$onyx, 0.68);
+    opacity: 90%;
+  
+  
+  // Enhanced glass properties
+  border: 1px solid rgba(palette.$seasalt, 0.2);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+}
 
-@keyframes siri-glow {
+// Glass highlight reflection on top half
+.glass-highlight {
+  position: absolute;
+  top: 1px;
+  left: 1px;
+  right: 1px;
+  height: 50%;
+  border-radius: 42px 42px 20px 20px;
+  background: linear-gradient(180deg, 
+    rgba(palette.$seasalt, 0.3) 0%, 
+    rgba(palette.$seasalt, 0.1) 50%, 
+    transparent 100%
+  );
+  filter: blur(2px);
+  pointer-events: none;
+  opacity: 1%;
+}
+
+@keyframes warm-pulse {
   0%, 100% {
-    @include siri-glow($siri-background, 0.4);
+    @include warm-glow(0.4);
   }
   50% {
-    @include siri-glow($siri-background, 0.5);
+    @include warm-glow(0.7);
   }
 }
 
-
+@keyframes gradient-flow {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
 
 .orbit-input {
   position: relative;
@@ -111,9 +174,9 @@ body {
   background: transparent;
   border: none;
   border-radius: 40px;
-  padding: 16px 20px;
-  color: palette.$antiflash-white;
-  font-size: 16px;
+  padding: 12px 20px;
+  color: palette.$seasalt;
+  font-size: 15px;
   outline: none;
   -webkit-appearance: none;
   -moz-appearance: none;
@@ -121,7 +184,7 @@ body {
   transition: all 0.3s ease;
   z-index: 10;
   cursor: text;
-  
+
   // Re-enable text selection for input
   -webkit-user-select: text;
   -moz-user-select: text;
@@ -129,18 +192,18 @@ body {
   user-select: text;
   
   &::placeholder {
-    color: rgba(palette.$antiflash-white, 0.7);
+    color: rgba(palette.$seasalt, 0.7);
   }
   
   &:focus {
     background: transparent;
     outline: none;
   }
-  
+
   &:focus-visible {
     outline: none;
   }
-  
+
   &:disabled {
     opacity: 0.5;
   }
@@ -150,7 +213,7 @@ body {
 
 .response-container {
   @include glass-effect(0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(palette.$seasalt, 0.2);
   border-radius: 20px;
   padding: 16px 20px;
   max-width: 370px;
@@ -159,9 +222,9 @@ body {
   max-height: 300px;
   overflow-y: auto;
   animation: fadeInUp 0.5s ease-out;
-  
+
   .response-text {
-    color: palette.$antiflash-white;
+    color: palette.$seasalt;
     font-size: 14px;
     line-height: 1.5;
     margin: 0;
@@ -170,22 +233,22 @@ body {
 
 .loading {
   display: inline-block;
-  
+
   .dot {
     animation: loadingDots 1.4s ease-in-out infinite both;
     font-size: 16px;
-    background: linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1);
+    background: linear-gradient(45deg, palette.$loading-gradient-start, palette.$loading-gradient-mid, palette.$loading-gradient-end);
     background-size: 200% 200%;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
     animation: loadingDots 1.4s ease-in-out infinite both,
       colorShift 2s ease-in-out infinite;
-    
+
     &:nth-child(1) {
       animation-delay: -0.32s;
     }
-    
+
     &:nth-child(2) {
       animation-delay: -0.16s;
     }
@@ -223,17 +286,17 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(palette.$seasalt, 0.1);
   border-radius: 2px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+  background: linear-gradient(45deg, palette.$loading-gradient-start, palette.$loading-gradient-mid);
   border-radius: 2px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(45deg, #ff5252, #26a69a);
+  background: linear-gradient(45deg, palette.$scrollbar-thumb-hover-start, palette.$scrollbar-thumb-hover-end);
 }
 
 /* Animation for when overlay appears */

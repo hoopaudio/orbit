@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import "./App.scss";
 
 function App() {
@@ -9,86 +10,93 @@ function App() {
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    // Focus input when component mounts
-    if (inputRef.current) {
-      inputRef.current.focus();
-    }
-
-    // Handle global escape key
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        hideWindow();
+    const setupListeners = async () => {
+      // Focus input on initial mount
+      if (inputRef.current) {
+        inputRef.current.focus();
       }
+
+      // Listen for window focus events to clear old state
+      const unlisten = await getCurrentWindow().onFocusChanged(({ payload: focused }) => {
+        if (focused) {
+          setQuery("");
+          setResponse("");
+          setIsLoading(false);
+          // Re-focus input when window gains focus
+          if (inputRef.current) {
+            inputRef.current.focus();
+          }
+        }
+      });
+
+      return unlisten;
     };
 
-    window.addEventListener("keydown", handleEscape);
-    return () => window.removeEventListener("keydown", handleEscape);
+    setupListeners().then(unlisten => {
+      // Cleanup function
+      return () => {
+        if (unlisten) {
+          unlisten();
+        }
+      };
+    });
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!query.trim() || isLoading) return;
+    if (!query.trim()) return;
 
     setIsLoading(true);
+    setResponse("");
+
     try {
-      const result = await invoke("process_query", { query });
-      setResponse(result as string);
-      setQuery("");
+      const result = await invoke<string>("process_query", { query });
+      setResponse(result);
     } catch (error) {
-      console.error("Error processing query:", error);
-      setResponse("Sorry, I couldn't process that request.");
+      setResponse(`Error: ${error}`);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const hideWindow = async () => {
-    try {
-      await invoke("hide_window");
-    } catch (error) {
-      console.error("Error hiding window:", error);
-    }
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Escape") {
-      hideWindow();
-    }
-  };
-
   return (
     <div className="orbit-container" data-tauri-drag-region>
-      <div className="orbit-overlay" data-tauri-drag-region>
-        <form onSubmit={handleSubmit} className="orbit-form" data-tauri-drag-region>
-          <div className="input-wrapper" data-tauri-drag-region="false">
+      <div className="orbit-overlay">
+        <form className="orbit-form" onSubmit={handleSubmit} data-tauri-drag-region>
+          <div className="input-wrapper">
+            {/* Bottom layer: Warm colors */}
+            <div className="warm-background"></div>
+            
+            {/* Top layer: Glass surface */}
+            <div className="glass-layer">
+              <div className="glass-highlight"></div>
+            </div>
+            
+            {/* Input field */}
             <input
               ref={inputRef}
-              type="text"
+              className="orbit-input"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              onKeyDown={handleKeyDown}
               placeholder="Type to Orbit"
-              className="orbit-input"
-              disabled={isLoading}
+              autoFocus
               data-tauri-drag-region="false"
             />
           </div>
-
+          
           {(response || isLoading) && (
             <div className="response-container" data-tauri-drag-region="false">
-            <p className="response-text">
               {isLoading ? (
-                <span className="loading">
+                <div className="loading">
                   <span className="dot">.</span>
                   <span className="dot">.</span>
                   <span className="dot">.</span>
-                </span>
+                </div>
               ) : (
-                response
+                <p className="response-text">{response}</p>
               )}
-            </p>
-          </div>
-        )}
+            </div>
+          )}
         </form>
       </div>
     </div>

@@ -11,6 +11,13 @@ $outer-space: #495057;
 $onyx: #343a40;
 $eerie-black: #212529;
 
+// Animation and Scrollbar Colors
+$loading-gradient-start: #ff6b6b;
+$loading-gradient-mid: #4ecdc4;
+$loading-gradient-end: #45b7d1;
+$scrollbar-thumb-hover-start: #ff5252;
+$scrollbar-thumb-hover-end: #26a69a;
+
 // Orbit specific colors
 $siri-background: #27272E;
 $siri-text: #b3b3b3;
@@ -27,6 +34,13 @@ $siri-text-placeholder: rgba(179, 179, 179, 0.7);
   --outer-space: #{$outer-space};
   --onyx: #{$onyx};
   --eerie-black: #{$eerie-black};
+
+  // Animation and Scrollbar
+  --loading-gradient-start: #{$loading-gradient-start};
+  --loading-gradient-mid: #{$loading-gradient-mid};
+  --loading-gradient-end: #{$loading-gradient-end};
+  --scrollbar-thumb-hover-start: #{$scrollbar-thumb-hover-start};
+  --scrollbar-thumb-hover-end: #{$scrollbar-thumb-hover-end};
   
   // Orbit specific
   --siri-background: #{$siri-background};
@@ -37,9 +51,9 @@ $siri-text-placeholder: rgba(179, 179, 179, 0.7);
 // Mixins for common patterns
 @mixin glass-effect($opacity: 0.4) {
   background: linear-gradient(135deg, 
-    rgba(255, 255, 255, 0.1) 0%, 
-    rgba(255, 255, 255, 0.05) 50%, 
-    rgba(255, 255, 255, 0.08) 100%
+    rgba(palette.$seasalt, 0.1) 0%, 
+    rgba(palette.$seasalt, 0.05) 50%, 
+    rgba(palette.$seasalt, 0.08) 100%
   ), 
   rgba($siri-background, $opacity);
   backdrop-filter: blur(40px) saturate(180%);
@@ -48,8 +62,8 @@ $siri-text-placeholder: rgba(179, 179, 179, 0.7);
 
 @mixin siri-glow($color: $siri-background, $opacity: 0.4) {
   box-shadow: 
-    inset 0 1px 2px rgba(255, 255, 255, 0.1),
-    inset 0 -1px 2px rgba(0, 0, 0, 0.3),
+    inset 0 1px 2px rgba(palette.$seasalt, 0.1),
+    inset 0 -1px 2px rgba(palette.$eerie-black, 0.3),
     0 0 15px rgba($color, $opacity * 1.0),
     0 0 30px rgba($color, $opacity * 0.6),
     0 0 45px rgba($color, $opacity * 0.4);
