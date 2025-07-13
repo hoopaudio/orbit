@@ -46,7 +46,7 @@ body {
   align-items: flex-start;
   justify-content: center;
   background: transparent;
-  padding-top: 20px;
+  padding-top: 10px;
 
   // Prevent text selection during drag
   -webkit-user-select: none;
@@ -90,15 +90,15 @@ body {
   display: flex;
   align-items: center;
   z-index: 10;
-  padding: 3px 19px;
+  padding: 2px 19px;
   height: 100%; // Ensure it fills its parent
 
 }
 
 // Orbit logo styling
 .orbit-logo {
-  width: 45px;
-  height: 45px;
+  width: 40px;
+  height: 40px;
   opacity: 0.9;
   flex-basis: auto;
   flex-grow: 1;
