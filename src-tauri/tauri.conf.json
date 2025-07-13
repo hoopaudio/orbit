@@ -22,7 +22,7 @@
         "alwaysOnTop": true,
         "center": false,
         "visible": false,
-        "focus": false,
+        "focus": true,
         "x": 1060,
         "y": 30,
         "skipTaskbar": true,
