@@ -1,0 +1,251 @@
+// SCSS Variables
+$siri-background: #27272E;
+$siri-text: #b3b3b3;
+$siri-text-placeholder: rgba(179, 179, 179, 0.7);
+
+// Mixins
+@mixin glass-effect($opacity: 0.4) {
+  background: linear-gradient(135deg, 
+    rgba(255, 255, 255, 0.1) 0%, 
+    rgba(255, 255, 255, 0.05) 50%, 
+    rgba(255, 255, 255, 0.08) 100%
+  ), 
+  $siri-background;
+  backdrop-filter: blur(40px) saturate(180%);
+  -webkit-backdrop-filter: blur(40px) saturate(180%);
+}
+
+@mixin siri-glow($color: $siri-background, $opacity: 0.4) {
+  box-shadow: 
+    inset 0 1px 2px rgba(255, 255, 255, 0.1),
+    inset 0 -1px 2px rgba(0, 0, 0, 0.3),
+    0 0 15px rgba($color, $opacity * 1.0),
+    0 0 30px rgba($color, $opacity * 0.6),
+    0 0 45px rgba($color, $opacity * 0.4);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: transparent;
+  overflow: hidden;
+  font-size: small;
+}
+
+.orbit-container {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  background: transparent;
+  padding-top: 20px;
+  
+  // Prevent text selection during drag
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+.orbit-overlay {
+  background: transparent;
+  width: 100%;
+  max-width: 450px; /* Proper size for the new window */
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow: visible;
+}
+
+.orbit-form {
+  width: 100%;
+  position: relative;
+  overflow: visible;
+}
+
+.input-wrapper {
+  position: relative;
+  border-radius: 42px;
+  overflow: visible;
+  z-index: 1;
+  max-width: 370px;
+  margin: 0 auto;
+  cursor: text;
+  
+  // Use SCSS mixins for cleaner code
+  @include glass-effect(1.0);
+  @include siri-glow($siri-background, 0.4);
+  
+  animation: siri-glow 3s ease-in-out infinite;
+}
+
+
+
+@keyframes siri-glow {
+  0%, 100% {
+    @include siri-glow($siri-background, 0.4);
+  }
+  50% {
+    @include siri-glow($siri-background, 0.5);
+  }
+}
+
+
+
+.orbit-input {
+  position: relative;
+  width: 100%;
+  background: transparent;
+  border: none;
+  border-radius: 40px;
+  padding: 16px 20px;
+  color: $siri-text;
+  font-size: 16px;
+  outline: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  transition: all 0.3s ease;
+  z-index: 10;
+  cursor: text;
+  
+  // Re-enable text selection for input
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+  user-select: text;
+  
+  &::placeholder {
+    color: $siri-text-placeholder;
+  }
+  
+  &:focus {
+    background: transparent;
+    outline: none;
+  }
+  
+  &:focus-visible {
+    outline: none;
+  }
+  
+  &:disabled {
+    opacity: 0.5;
+  }
+}
+
+
+
+.response-container {
+  @include glass-effect(0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 20px;
+  padding: 16px 20px;
+  max-width: 370px;
+  margin: 0 auto;
+  margin-top: 8px;
+  max-height: 300px;
+  overflow-y: auto;
+  animation: fadeInUp 0.5s ease-out;
+  
+  .response-text {
+    color: rgba(255, 255, 255, 0.95);
+    font-size: 14px;
+    line-height: 1.5;
+    margin: 0;
+  }
+}
+
+.loading {
+  display: inline-block;
+  
+  .dot {
+    animation: loadingDots 1.4s ease-in-out infinite both;
+    font-size: 16px;
+    background: linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1);
+    background-size: 200% 200%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: loadingDots 1.4s ease-in-out infinite both,
+      colorShift 2s ease-in-out infinite;
+    
+    &:nth-child(1) {
+      animation-delay: -0.32s;
+    }
+    
+    &:nth-child(2) {
+      animation-delay: -0.16s;
+    }
+  }
+}
+
+@keyframes loadingDots {
+
+  0%,
+  80%,
+  100% {
+    opacity: 0.3;
+  }
+
+  40% {
+    opacity: 1;
+  }
+}
+
+@keyframes colorShift {
+
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+/* Scrollbar styling for any scrollable content */
+::-webkit-scrollbar {
+  width: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+  border-radius: 2px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(45deg, #ff5252, #26a69a);
+}
+
+/* Animation for when overlay appears */
+.orbit-overlay {
+  animation: fadeInUp 0.3s ease-out;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.9);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}

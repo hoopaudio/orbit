@@ -1,14 +1,12 @@
 import { useState, useEffect, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import "./App.css";
+import "./App.scss";
 
 function App() {
   const [query, setQuery] = useState("");
   const [response, setResponse] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
-
-
 
   useEffect(() => {
     // Focus input when component mounts
@@ -59,10 +57,10 @@ function App() {
   };
 
   return (
-    <div className="orbit-container">
-      <div className="orbit-overlay">
-        <form onSubmit={handleSubmit} className="orbit-form">
-          <div className="input-wrapper">
+    <div className="orbit-container" data-tauri-drag-region>
+      <div className="orbit-overlay" data-tauri-drag-region>
+        <form onSubmit={handleSubmit} className="orbit-form" data-tauri-drag-region>
+          <div className="input-wrapper" data-tauri-drag-region="false">
             <input
               ref={inputRef}
               type="text"
@@ -72,12 +70,12 @@ function App() {
               placeholder="Type to Orbit"
               className="orbit-input"
               disabled={isLoading}
+              data-tauri-drag-region="false"
             />
           </div>
-        </form>
 
-        {(response || isLoading) && (
-          <div className="response-container">
+          {(response || isLoading) && (
+            <div className="response-container" data-tauri-drag-region="false">
             <p className="response-text">
               {isLoading ? (
                 <span className="loading">
@@ -91,6 +89,7 @@ function App() {
             </p>
           </div>
         )}
+        </form>
       </div>
     </div>
   );
