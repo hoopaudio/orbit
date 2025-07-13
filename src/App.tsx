@@ -8,6 +8,8 @@ function App() {
   const [isLoading, setIsLoading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
+
+
   useEffect(() => {
     // Focus input when component mounts
     if (inputRef.current) {

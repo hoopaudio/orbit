@@ -13,15 +13,15 @@
     "windows": [
       {
         "title": "Orbit",
-        "width": 370,
-        "height": 400,
+        "width": 500,
+        "height": 350,
         "resizable": false,
         "fullscreen": false,
         "decorations": false,
         "transparent": true,
         "alwaysOnTop": true,
         "center": false,
-        "x": 1135,
+        "x": 1050,
         "y": 44,
         "skipTaskbar": true,
         "visibleOnAllWorkspaces": true

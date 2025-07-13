@@ -29,24 +29,29 @@ body {
   width: 100vw;
   height: 100vh;
   background: transparent;
-  padding: 10px;
+  padding: 20px;
   display: flex;
   flex-direction: column;
   align-items: center;
+  overflow: visible;
 }
 
 .orbit-overlay {
   background: transparent;
   width: 100%;
-  max-width: 370px; /* Back to original width */
+  max-width: 450px; /* Proper size for the new window */
   display: flex;
   flex-direction: column;
   gap: 12px;
+  overflow: visible;
 }
 
 .orbit-form {
   width: 100%;
   position: relative;
+  overflow: visible;
+  padding: 20px; /* Space for the glow without being excessive */
+  margin: -20px; /* Negative margin to maintain visual centering */
 }
 
 .input-wrapper {
@@ -58,134 +63,39 @@ body {
       rgba(255, 255, 255, 0.05) 50%, 
       rgba(255, 255, 255, 0.08) 100%
     ),
-    rgba(0, 0, 0, 0.484); /* Subtle gray-blue tint */
+    rgba(0, 0, 0, 0.484);
   backdrop-filter: blur(40px) saturate(180%);
   -webkit-backdrop-filter: blur(40px) saturate(180%);
   overflow: visible;
-  /* Subtle inset shadow for depth */
+  /* Clean Siri-style outer glow */
   box-shadow: 
     inset 0 1px 2px rgba(255, 255, 255, 0.1),
     inset 0 -1px 2px rgba(0, 0, 0, 0.3),
-    inset 1px 0 2px rgba(0, 0, 0, 0.2),
-    inset -1px 0 2px rgba(0, 0, 0, 0.2),
-    /* Much more visible colored inner glow */
-    inset 0 0 20px rgba(255, 107, 107, 0.3),
-    inset 0 0 40px rgba(255, 159, 122, 0.2),
-    inset 0 0 60px rgba(255, 126, 179, 0.15);
-  animation: pill-colored-glow 3s ease-in-out infinite;
+    0 0 20px rgba(102, 163, 255, 0.3),
+    0 0 40px rgba(102, 163, 255, 0.15),
+    0 0 60px rgba(102, 163, 255, 0.1);
+  z-index: 1;
+  max-width: 370px; /* Limit the input width to original size */
+  margin: 0 auto; /* Center the input */
+  animation: siri-glow 3s ease-in-out infinite;
 }
 
-@keyframes pill-colored-glow {
+@keyframes siri-glow {
   0%, 100% {
     box-shadow: 
       inset 0 1px 2px rgba(255, 255, 255, 0.1),
       inset 0 -1px 2px rgba(0, 0, 0, 0.3),
-      inset 1px 0 2px rgba(0, 0, 0, 0.2),
-      inset -1px 0 2px rgba(0, 0, 0, 0.2),
-      inset 0 0 20px rgba(255, 107, 107, 0.3),
-      inset 0 0 40px rgba(255, 159, 122, 0.2),
-      inset 0 0 60px rgba(255, 126, 179, 0.15);
-  }
-  33% {
-    box-shadow: 
-      inset 0 1px 2px rgba(255, 255, 255, 0.1),
-      inset 0 -1px 2px rgba(0, 0, 0, 0.3),
-      inset 1px 0 2px rgba(0, 0, 0, 0.2),
-      inset -1px 0 2px rgba(0, 0, 0, 0.2),
-      inset 0 0 30px rgba(255, 159, 122, 0.4),
-      inset 0 0 60px rgba(255, 126, 179, 0.3),
-      inset 0 0 90px rgba(197, 137, 232, 0.2);
-  }
-  66% {
-    box-shadow: 
-      inset 0 1px 2px rgba(255, 255, 255, 0.1),
-      inset 0 -1px 2px rgba(0, 0, 0, 0.3),
-      inset 1px 0 2px rgba(0, 0, 0, 0.2),
-      inset -1px 0 2px rgba(0, 0, 0, 0.2),
-      inset 0 0 30px rgba(255, 126, 179, 0.4),
-      inset 0 0 60px rgba(197, 137, 232, 0.3),
-      inset 0 0 90px rgba(255, 107, 107, 0.2);
-  }
-}
-
-/* Flowing color overlay across the pill */
-.input-wrapper::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(90deg, 
-    var(--siri-coral) 0%,
-    var(--siri-peach) 25%,
-    var(--siri-pink) 50%,
-    var(--siri-purple) 75%,
-    var(--siri-coral) 100%
-  );
-  background-size: 200% 100%;
-  border-radius: 42px;
-  opacity: 0.15;
-  z-index: 0;
-  animation: flow-colors 6s ease-in-out infinite;
-  pointer-events: none;
-}
-
-@keyframes flow-colors {
-  0%, 100% {
-    background-position: 0% 50%;
+      0 0 20px rgba(102, 163, 255, 0.3),
+      0 0 40px rgba(102, 163, 255, 0.15),
+      0 0 60px rgba(102, 163, 255, 0.1);
   }
   50% {
-    background-position: 100% 50%;
-  }
-}
-
-/* Update the glow layers z-index */
-.input-wrapper::before {
-  content: '';
-  position: absolute;
-  top: -20px;
-  left: -30px;
-  right: -30px;
-  bottom: -20px;
-  background: 
-    radial-gradient(ellipse 80px 40px at 30% center, var(--siri-coral) 0%, transparent 60%),
-    radial-gradient(ellipse 80px 40px at 70% center, var(--siri-purple) 0%, transparent 60%);
-  border-radius: 60px;
-  filter: blur(20px);
-  opacity: 0.6;
-  z-index: -1;
-  animation: glow-pulse 3s ease-in-out infinite alternate;
-}
-
-/* Move the old ::after to a different approach */
-.orbit-form::after {
-  content: '';
-  position: absolute;
-  top: -15px;
-  left: -25px;
-  right: -25px;
-  bottom: -15px;
-  background: 
-    radial-gradient(ellipse 60px 30px at 25% center, var(--siri-peach) 0%, transparent 50%),
-    radial-gradient(ellipse 60px 30px at 75% center, var(--siri-pink) 0%, transparent 50%),
-    radial-gradient(ellipse 100px 50px at 50% center, var(--siri-warm) 0%, transparent 70%);
-  border-radius: 55px;
-  filter: blur(12px);
-  opacity: 0.4;
-  z-index: -1;
-  animation: glow-pulse 4s ease-in-out infinite alternate-reverse;
-  pointer-events: none;
-}
-
-@keyframes glow-pulse {
-  0% {
-    opacity: 0.4;
-    transform: scale(0.95);
-  }
-  100% {
-    opacity: 0.8;
-    transform: scale(1.05);
+    box-shadow: 
+      inset 0 1px 2px rgba(255, 255, 255, 0.1),
+      inset 0 -1px 2px rgba(0, 0, 0, 0.3),
+      0 0 25px rgba(102, 163, 255, 0.4),
+      0 0 50px rgba(102, 163, 255, 0.2),
+      0 0 75px rgba(102, 163, 255, 0.15);
   }
 }
 
