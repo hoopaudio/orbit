@@ -3,6 +3,9 @@
 
 use tauri::Window;
 
+// Add TAO window manager
+mod window_manager;
+
 #[tauri::command]
 fn greet(name: &str) -> String {
     format!("Hello, {}! You've been greeted from Rust!", name)
@@ -59,6 +62,30 @@ fn show_window(window: Window) {
     }
 }
 
+#[tauri::command]
+fn resize_to_content(window: Window, content_height: u32) -> Result<(), String> {
+    use tauri::LogicalSize;
+    let new_height = (content_height + 40).clamp(100, 600);
+    window
+        .set_size(LogicalSize::new(500, new_height))
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
+fn set_window_badge(text: Option<String>) -> Result<(), String> {
+    // This would integrate with TAO's badge setting
+    println!("Setting badge to: {:?}", text);
+    Ok(())
+}
+
+#[tauri::command]
+fn create_settings_window() -> Result<(), String> {
+    // Create a dedicated settings window
+    println!("Creating settings window");
+    Ok(())
+}
+
 fn main() {
     tauri::Builder::default()
         .setup(|app| {
@@ -73,25 +100,27 @@ fn main() {
             let window = app.get_webview_window("main").unwrap();
 
             // Register the global hotkey using Tauri v2 plugin API
-            use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutState};
+            use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut, ShortcutState};
             let shortcut: Shortcut = hotkey.parse().unwrap();
-            
-            app.handle().plugin(
-                tauri_plugin_global_shortcut::Builder::new()
-                    .with_handler(move |_app, scut, event| {
-                        if scut == &shortcut {
-                            if let ShortcutState::Pressed = event.state() {
-                                if window.is_visible().unwrap_or(false) {
-                                    window.hide().unwrap();
-                                } else {
-                                    window.show().unwrap();
-                                    window.set_focus().unwrap();
+
+            app.handle()
+                .plugin(
+                    tauri_plugin_global_shortcut::Builder::new()
+                        .with_handler(move |_app, scut, event| {
+                            if scut == &shortcut {
+                                if let ShortcutState::Pressed = event.state() {
+                                    if window.is_visible().unwrap_or(false) {
+                                        window.hide().unwrap();
+                                    } else {
+                                        window.show().unwrap();
+                                        window.set_focus().unwrap();
+                                    }
                                 }
                             }
-                        }
-                    })
-                    .build(),
-            ).unwrap();
+                        })
+                        .build(),
+                )
+                .unwrap();
 
             app.global_shortcut().register(shortcut).unwrap();
 
@@ -104,7 +133,10 @@ fn main() {
             process_query,
             toggle_window_visibility,
             hide_window,
-            show_window
+            show_window,
+            resize_to_content,
+            set_window_badge,
+            create_settings_window,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

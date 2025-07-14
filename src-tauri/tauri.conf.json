@@ -14,8 +14,8 @@
       {
         "title": "Orbit",
         "width": 500,
-        "height": 350,
-        "resizable": false,
+        "height": 10,
+        "resizable": true,
         "fullscreen": false,
         "decorations": false,
         "transparent": true,
@@ -26,7 +26,11 @@
         "x": 1060,
         "y": 30,
         "skipTaskbar": true,
-        "visibleOnAllWorkspaces": true
+        "visibleOnAllWorkspaces": true,
+        "minWidth": 400,
+        "minHeight": 100,
+        "maxWidth": 600,
+        "maxHeight": 600
       }
     ],
     "security": {
