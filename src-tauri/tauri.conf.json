@@ -12,31 +12,41 @@
   "app": {
     "windows": [
       {
-        "title": "Orbit",
-        "width": 500,
-        "height": 10,
-        "resizable": true,
+        "title": "Orbit - Main",
+        "label": "main",
         "fullscreen": false,
+        "resizable": true,
+        "minimizable": false,
+        "width": 500,
+        "height": 100,
+        "shadow": false,
         "decorations": false,
         "transparent": true,
         "alwaysOnTop": true,
         "center": false,
         "visible": false,
-        "focus": true,
         "x": 1060,
         "y": 30,
-        "skipTaskbar": true,
-        "visibleOnAllWorkspaces": true,
-        "minWidth": 400,
-        "minHeight": 100,
-        "maxWidth": 600,
-        "maxHeight": 600
+        "minWidth": 500,
+        "minHeight": 100
+      },
+      {
+        "transparent": true,
+        "decorations": true,
+        "resizable": false,
+        "visible": false,
+        "label": "settings",
+        "url": "#settings",
+        "title": "Orbit - Settings",
+        "width": 600,
+        "height": 400
       }
     ],
     "security": {
       "csp": null
     },
-    "macOSPrivateApi": true
+    "macOSPrivateApi": true,
+    "withGlobalTauri": true
   },
   "bundle": {
     "active": true,
