@@ -2379,6 +2379,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "monitor"
+version = "0.1.0"
+source = "git+https://github.com/ahkohd/tauri-toolkit?branch=v2#c7f4c56936d60888250d84bd24169f11b7b9e97a"
+dependencies = [
+ "cocoa",
+ "core-foundation 0.10.1",
+ "core-graphics 0.24.0",
+ "objc",
+ "serde",
+ "tauri",
+ "thiserror 2.0.12",
+]
+
+[[package]]
 name = "muda"
 version = "0.17.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2783,6 +2797,7 @@ dependencies = [
  "anyhow",
  "cocoa",
  "log",
+ "monitor",
  "objc",
  "objc2 0.5.2",
  "objc2-app-kit",
@@ -2803,6 +2818,7 @@ dependencies = [
  "tauri-plugin-single-instance",
  "tauri-plugin-websocket",
  "tauri-plugin-window-state",
+ "thiserror 2.0.12",
 ]
 
 [[package]]

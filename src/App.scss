@@ -336,3 +336,16 @@ body {
     transform: translateY(0) scale(1);
   }
 }
+
+.settings-container {
+  width: 100vw;
+  height: 100vh;
+  padding: 20px;
+  background: palette.$onyx;
+  color: palette.$seasalt;
+
+  h1 {
+    font-size: 1.5em;
+    margin-bottom: 20px;
+  }
+}

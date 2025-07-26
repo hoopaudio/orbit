@@ -2,190 +2,66 @@
     all(not(debug_assertions), target_os = "windows"),
     windows_subsystem = "windows"
 )]
-#![allow(unused_must_use)]
 
-#[cfg(target_os = "macos")]
-extern crate objc;
-
-mod app_handle;
-mod commands;
-mod constants;
+mod command;
 mod tray;
-mod window_custom;
+mod window;
 
-use crate::commands::*;
-use constants::*;
-use log::{debug, info};
-use std::{
-    str::FromStr,
-    sync::{atomic::AtomicBool, Mutex},
-};
-use tauri::{generate_handler, menu::Menu, LogicalSize, Manager, Wry};
-use tauri_plugin_log::{Target, TargetKind};
-use tauri_plugin_window_state::{AppHandleExt, StateFlags};
-use tray::Tray;
-use window_custom::WebviewWindowExt;
-
-#[cfg(target_os = "macos")]
-use app_handle::AppHandleExt as MacAppHandleExt;
-
-#[cfg(target_os = "macos")]
-use window_custom::macos::WebviewWindowExtMacos;
-
-#[cfg(target_os = "macos")]
-use system_notification::WorkspaceListener;
-
-#[cfg(target_os = "macos")]
-use tauri::WebviewWindow;
-
-#[cfg(target_os = "macos")]
+use command::{hide, show};
+use tauri::{Listener, Manager};
 use tauri_nspanel::ManagerExt;
+use tauri_plugin_global_shortcut::{Code, Modifiers, Shortcut, ShortcutState};
+use window::WebviewWindowExt;
 
-pub struct Pinned(AtomicBool);
-
-pub struct TrayMenu(Mutex<Menu<Wry>>);
-
-#[cfg(target_os = "macos")]
-fn apply_macos_specifics(window: &WebviewWindow) {
-    use tauri::{AppHandle, Wry};
-
-    window.remove_shadow();
-
-    window.set_float_panel(constants::ORBIT_NORMAL_LEVEL);
-
-    let app_handle = window.app_handle();
-
-    app_handle.listen_workspace(
-        "NSWorkspaceDidActivateApplicationNotification",
-        |app_handle| {
-            let bundle_id = AppHandle::<Wry>::frontmost_application_bundle_id();
-
-            if let Some(bundle_id) = bundle_id {
-                let is_league_of_legends = bundle_id == "com.riotgames.LeagueofLegends.GameClient";
-
-                let panel = app_handle.get_webview_panel(MAIN_WINDOW_NAME).unwrap();
-
-                panel.set_level(if is_league_of_legends {
-                    constants::HIGHER_LEVEL_THAN_LEAGUE
-                } else {
-                    constants::ORBIT_NORMAL_LEVEL
-                });
-            }
-        },
-    );
-}
+pub const ORBIT_LABEL: &str = "main";
 
 fn main() {
-    let flags = StateFlags::POSITION | StateFlags::SIZE;
-    let window_state_plugin = tauri_plugin_window_state::Builder::default().with_state_flags(flags);
-    let log_level = std::env::var("LOG_LEVEL").unwrap_or_else(|_| "info".to_string());
-
-    let log_level_filter = log::LevelFilter::from_str(&log_level).unwrap_or(log::LevelFilter::Info);
-
-    let log_plugin_builder = tauri_plugin_log::Builder::new()
-        .targets([Target::new(TargetKind::LogDir { file_name: None })])
-        .level_for("overlayed", log_level_filter)
-        .level_for("reqwest", log_level_filter)
-        .level_for("notify", log::LevelFilter::Off)
-        .level_for("tokio_tungstenite", log::LevelFilter::Off)
-        .level_for("tungstenite", log::LevelFilter::Off)
-        .level_for("tao", log::LevelFilter::Off);
-
-    let mut app = tauri::Builder::default()
-        .plugin(window_state_plugin.build())
-        .plugin(tauri_plugin_websocket::init())
-        .plugin(tauri_plugin_fs::init())
-        .plugin(tauri_plugin_process::init())
-        .plugin(tauri_plugin_shell::init())
-        .plugin(tauri_plugin_os::init())
-        .plugin(tauri_plugin_http::init())
-        .plugin(log_plugin_builder.build())
-        .plugin(tauri_plugin_single_instance::init(|app, argv, cwd| {
-            println!("{}, {argv:?}, {cwd}", app.package_info().name);
-        }));
-
-    #[cfg(target_os = "macos")]
-    {
-        app = app.plugin(tauri_nspanel::init());
-    }
-
-    app = app
-        .manage(Pinned(AtomicBool::new(false)))
+    tauri::Builder::default()
+        .invoke_handler(tauri::generate_handler![show, hide])
+        .plugin(tauri_nspanel::init())
         .setup(move |app| {
-            debug!("starting app...");
-            let window = app.get_webview_window(MAIN_WINDOW_NAME).unwrap();
-            let settings = app.get_webview_window(SETTINGS_WINDOW_NAME).unwrap();
+            // Set activation poicy to Accessory to prevent the app icon from showing on the dock
+            app.set_activation_policy(tauri::ActivationPolicy::Accessory);
 
-            info!("Log level set to: {log_level}");
-            // the window should always be on top
-            #[cfg(not(target_os = "macos"))]
-            window.set_always_on_top(true);
+            let handle = app.app_handle();
 
-            // set the document title for the main window
-            // TODO: we could just get the tauri window title in js as an alternative?
-            window.set_document_title("Orbit - Main");
+            let window = handle.get_webview_window(ORBIT_LABEL).unwrap();
 
-            // set the document title for the settings window
-            settings.set_document_title("Orbit - Settings");
+            // Convert the window to a spotlight panel
+            let panel = window.to_orbit_panel()?;
 
-            // setting this seems to fix windows somehow
-            // NOTE: this might be a bug?
-            window.set_decorations(false);
-            window.set_shadow(false);
-
-            // add mac things
-            #[cfg(target_os = "macos")]
-            apply_macos_specifics(&window);
-
-            // Open dev tools only when in dev mode
-            #[cfg(debug_assertions)]
-            {
-                window.open_devtools();
-                settings.open_devtools();
-            }
-
-            // update the system tray
-            Tray::update_tray(app.app_handle());
-
-            // NOTE: always force settings window to be a certain size
-            settings.set_size(LogicalSize {
-                width: SETTINGS_WINDOW_WIDTH,
-                height: SETTINGS_WINDOW_HEIGHT,
+            handle.listen(format!("{}_panel_did_resign_key", ORBIT_LABEL), move |_| {
+                // Hide the panel when it's no longer the key window
+                // This ensures the panel doesn't remain visible when it's not actively being used
+                panel.order_out(None);
             });
 
             Ok(())
         })
-        .invoke_handler(generate_handler![
-            toggle_pin,
-            get_pin,
-            set_pin,
-            open_devtools,
-            close_settings,
-            open_settings,
-        ]);
+        // Register a global shortcut (⌘+O) to toggle the visibility of the spotlight panel
+        .plugin(
+            tauri_plugin_global_shortcut::Builder::new()
+                .with_shortcut(Shortcut::new(Some(Modifiers::SUPER), Code::KeyO))
+                .unwrap()
+                .with_handler(|app, shortcut, event| {
+                    if event.state == ShortcutState::Pressed
+                        && shortcut.matches(Modifiers::SUPER, Code::KeyO)
+                    {
+                        let window = app.get_webview_window(ORBIT_LABEL).unwrap();
 
-    app.build(tauri::generate_context!())
-        .expect("An error occured while running the app!")
-        .run(|app, event| {
-            if let tauri::RunEvent::WindowEvent {
-                event: tauri::WindowEvent::CloseRequested { api, .. },
-                label,
-                ..
-            } = event
-            {
-                if label == SETTINGS_WINDOW_NAME {
-                    let win = app.get_webview_window(label.as_str()).unwrap();
-                    win.hide().unwrap();
-                }
+                        let panel = app.get_webview_panel(ORBIT_LABEL).unwrap();
 
-                if label == MAIN_WINDOW_NAME {
-                    app.save_window_state(StateFlags::POSITION | StateFlags::SIZE);
-                    std::process::exit(0);
-                } else {
-                    api.prevent_close();
-                }
-            }
-        });
+                        if panel.is_visible() {
+                            panel.order_out(None);
+                        } else {
+                            window.center_at_cursor_monitor().unwrap();
 
-    debug!("app started succesfully!");
+                            panel.show();
+                        }
+                    }
+                })
+                .build(),
+        )
+        .run(tauri::generate_context!())
+        .expect("error while running tauri application");
 }

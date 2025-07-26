@@ -30,33 +30,28 @@
       {
         "title": "Orbit - Main",
         "label": "main",
-        "fullscreen": false,
-        "resizable": true,
-        "minimizable": false,
         "width": 500,
         "height": 100,
-        "visible": false,
+        "minWidth": 500,
+        "minHeight": 100,
         "transparent": true,
         "decorations": false,
-        "shadow": false,
-        "alwaysOnTop": true,
-        "center": false,
-        "visible": false,
-        "x": 1060,
-        "y": 30,
-        "minWidth": 500,
-        "minHeight": 100
-      },
-      {
-        "transparent": true,
-        "decorations": true,
         "resizable": false,
         "visible": false,
-        "label": "settings",
-        "url": "#settings",
+        "center": true
+      },
+      {
         "title": "Orbit - Settings",
-        "width": 600,
-        "height": 400
+        "label": "settings",
+        "width": 500,
+        "height": 400,
+        "minWidth": 500,
+        "minHeight": 400,
+        "transparent": false,
+        "decorations": true,
+        "resizable": true,
+        "visible": false,
+        "center": true
       }
     ],
     "security": {
