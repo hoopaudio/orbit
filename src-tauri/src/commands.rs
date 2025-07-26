@@ -126,9 +126,9 @@ fn _set_pin(value: bool, window: &WebviewWindow, pinned: State<Pinned>, menu: St
 
 pub fn update_tray_icon(app: &AppHandle, pinned: bool) {
     let icon_bytes = if pinned {
-        include_bytes!("../icons/tray/ORBIT-WIREFRAME-LOGO.ico").as_slice()
+        include_bytes!("../icons/tray/ORBIT-WIREFRAME-LOGO.png").as_slice()
     } else {
-        include_bytes!("../icons/tray/ORBIT-WIREFRAME-LOGO.ico").as_slice()
+        include_bytes!("../icons/tray/ORBIT-WIREFRAME-LOGO.png").as_slice()
     };
 
     if let Some(tray) = app.tray_by_id(ORBIT) {
@@ -136,4 +136,10 @@ pub fn update_tray_icon(app: &AppHandle, pinned: bool) {
             tray.set_icon(Some(icon));
         }
     }
+}
+
+#[tauri::command]
+pub fn process_query(query: String) -> String {
+    // Placeholder logic: return the query as is
+    query
 }

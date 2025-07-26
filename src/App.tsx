@@ -81,17 +81,9 @@ function App() {
         try {
             const result = await invoke<string>("process_query", {query});
             setResponse(result);
-
-            // Set dock badge to indicate activity
-            await invoke("set_window_badge", {text: "🔮"});
-
-            // Clear badge after a few seconds
-            setTimeout(async () => {
-                await invoke("set_window_badge", {text: null});
-            }, 3000);
-
         } catch (error) {
-            setResponse("Error processing query");
+            setResponse("Error processing query " + error);
+            console.log(error)
         } finally {
             setIsLoading(false);
         }

@@ -112,14 +112,15 @@ fn main() {
             Ok(())
         })
         .invoke_handler(generate_handler![
-            toggle_pin,
-            get_pin,
-            set_pin,
-            open_devtools,
-            close_settings,
-            open_settings,
-            show,
-            hide
+             toggle_pin,
+             get_pin,
+             set_pin,
+             open_devtools,
+             close_settings,
+             open_settings,
+             process_query,
+             show,
+             hide
         ]);
 
     app.build(tauri::generate_context!())
