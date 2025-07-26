@@ -126,9 +126,9 @@ fn _set_pin(value: bool, window: &WebviewWindow, pinned: State<Pinned>, menu: St
 
 pub fn update_tray_icon(app: &AppHandle, pinned: bool) {
     let icon_bytes = if pinned {
-        include_bytes!("../icons/tray/icon-pinned.ico").as_slice()
+        include_bytes!("../icons/tray/ORBIT-WIREFRAME-LOGO.ico").as_slice()
     } else {
-        include_bytes!("../icons/tray/icon.ico").as_slice()
+        include_bytes!("../icons/tray/ORBIT-WIREFRAME-LOGO.ico").as_slice()
     };
 
     if let Some(tray) = app.tray_by_id(ORBIT) {
