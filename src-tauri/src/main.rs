@@ -5,12 +5,14 @@
 
 mod commands;
 mod consts;
+mod services;
 mod tray;
 mod window;
 
 use crate::consts::{MAIN_WINDOW_NAME, ORBIT_LABEL, SETTINGS_WINDOW_NAME};
 use crate::tray::Tray;
 use commands::*;
+use dotenv::dotenv;
 use std::{
     str::FromStr,
     sync::{atomic::AtomicBool, Mutex},
@@ -27,6 +29,9 @@ pub struct Pinned(AtomicBool);
 pub struct TrayMenu(Mutex<Menu<Wry>>);
 
 fn main() {
+    // Load environment variables from .env file
+    dotenv().ok();
+
     let flags = StateFlags::POSITION | StateFlags::SIZE;
     let window_state_plugin = tauri_plugin_window_state::Builder::default().with_state_flags(flags);
     let log_level = std::env::var("LOG_LEVEL").unwrap_or_else(|_| "info".to_string());
