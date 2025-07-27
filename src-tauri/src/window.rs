@@ -18,12 +18,13 @@ enum Error {
     Panel,
     #[error("Monitor with cursor not found")]
     MonitorNotFound,
+    #[error("Invalid position: {0}")]
+    InvalidPosition(String),
 }
 
 pub trait WebviewWindowExt {
     fn to_orbit_panel(&self) -> tauri::Result<Panel>;
-
-    fn center_at_cursor_monitor(&self) -> tauri::Result<()>;
+    fn position(&self, position: &str) -> tauri::Result<()>;
 }
 
 impl<R: Runtime> WebviewWindowExt for WebviewWindow<R> {
@@ -82,7 +83,7 @@ impl<R: Runtime> WebviewWindowExt for WebviewWindow<R> {
         Ok(panel)
     }
 
-    fn center_at_cursor_monitor(&self) -> tauri::Result<()> {
+    fn position(&self, position: &str) -> tauri::Result<()> {
         let monitor = monitor::get_monitor_with_cursor()
             .ok_or(TauriError::Anyhow(Error::MonitorNotFound.into()))?;
 
@@ -96,13 +97,23 @@ impl<R: Runtime> WebviewWindowExt for WebviewWindow<R> {
 
         let window_frame: NSRect = unsafe { window_handle.frame() };
 
-        let rect = NSRect {
-            origin: NSPoint {
+        let origin = match position {
+            "center" => NSPoint {
                 x: (monitor_position.x + (monitor_size.width / 2.0))
                     - (window_frame.size.width / 2.0),
                 y: (monitor_position.y + (monitor_size.height / 2.0))
                     - (window_frame.size.height / 2.0),
             },
+            "top_right" => NSPoint {
+                x: monitor_position.x + monitor_size.width - window_frame.size.width,
+                // Position 25px below top to avoid menu bar
+                y: monitor_position.y + monitor_size.height - window_frame.size.height - 25.0,
+            },
+            _ => return Err(TauriError::Anyhow(Error::InvalidPosition(position.to_string()).into())),
+        };
+
+        let rect = NSRect {
+            origin,
             size: window_frame.size,
         };
 

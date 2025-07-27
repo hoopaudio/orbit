@@ -36,7 +36,7 @@
         "minHeight": 100,
         "transparent": true,
         "decorations": false,
-        "resizable": false,
+        "resizable": true,
         "visible": false,
         "center": true
       },

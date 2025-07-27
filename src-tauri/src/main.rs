@@ -68,7 +68,7 @@ fn main() {
                         if panel.is_visible() {
                             panel.order_out(None);
                         } else {
-                            window.center_at_cursor_monitor().unwrap();
+                            window.position("top_right").unwrap();
 
                             panel.show();
                         }
@@ -112,15 +112,15 @@ fn main() {
             Ok(())
         })
         .invoke_handler(generate_handler![
-             toggle_pin,
-             get_pin,
-             set_pin,
-             open_devtools,
-             close_settings,
-             open_settings,
-             process_query,
-             show,
-             hide
+            toggle_pin,
+            get_pin,
+            set_pin,
+            open_devtools,
+            close_settings,
+            open_settings,
+            process_query,
+            show,
+            hide
         ]);
 
     app.build(tauri::generate_context!())
