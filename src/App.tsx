@@ -1,53 +1,39 @@
 import {useState, useEffect, useRef} from "react";
 import {invoke} from "@tauri-apps/api/core";
-import {getCurrentWindow, LogicalSize} from "@tauri-apps/api/window";
+import {getCurrentWindow} from "@tauri-apps/api/window";
+import {listen} from "@tauri-apps/api/event";
+import ReactMarkdown from 'react-markdown';
 import "./App.scss";
 
 function App() {
     const [query, setQuery] = useState("");
     const [response, setResponse] = useState("");
     const [isLoading, setIsLoading] = useState(false);
-    const inputRef = useRef<HTMLInputElement>(null);
+    const inputRef = useRef<HTMLTextAreaElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
 
-    // Enhanced dynamic window resizing with TAO
+    // Resize window when response content changes
     useEffect(() => {
-        const resizeWindowToContent = async () => {
-            try {
-                const window = getCurrentWindow();
-
-                if (!containerRef.current) return;
-
-                // Wait for DOM to be fully rendered
-                await new Promise(resolve => setTimeout(resolve, 100));
-
-                // Measure the actual content height
-                const containerHeight = containerRef.current.scrollHeight;
-                const minHeight = 100; // Minimum height for input only
-                const maxHeight = 600; // Maximum height to prevent huge windows
-                const windowPadding = 20; // Extra padding for window chrome
-
-                // Calculate the ideal window height
-                const idealHeight = Math.min(Math.max(containerHeight + windowPadding, minHeight), maxHeight);
-
-                console.log(`Content height: ${containerHeight}px, Setting window to: ${idealHeight}px`);
-
-                // Use TAO-enhanced resize command
-                try {
-                    await invoke("resize_to_content", {contentHeight: idealHeight});
-                } catch (error) {
-                    // Fallback to Tauri's built-in method
-                    await window.setSize(new LogicalSize(500, idealHeight));
-                }
-
-            } catch (error) {
-                console.error("Failed to resize window:", error);
-            }
-        };
-
-        // Resize when content changes
-        resizeWindowToContent();
+        if (!containerRef.current) return;
+        
+        const containerHeight = containerRef.current.scrollHeight;
+        const windowHeight = Math.min(Math.max(containerHeight + 40, 120), 600);
+        
+        invoke("resize_window", {
+            width: 550,
+            height: windowHeight
+        }).catch(console.error);
     }, [response, isLoading]);
+
+    // Auto-resize textarea height as user types
+    const handleTextareaInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+        const textarea = e.target;
+        setQuery(textarea.value);
+
+        // Reset height to auto to get accurate scrollHeight
+        textarea.style.height = 'auto';
+        textarea.style.height = Math.min(textarea.scrollHeight, 200) + 'px';
+    };
 
     useEffect(() => {
         const setupListeners = async () => {
@@ -78,14 +64,38 @@ function App() {
         setIsLoading(true);
         setResponse("");
 
-        try {
-            const result = await invoke<string>("process_query", {query});
-            setResponse(result);
-        } catch (error) {
-            setResponse("Error processing query " + error);
-            console.log(error)
-        } finally {
+        // Set up streaming event listeners
+        const unlistenChunk = await listen<string>("stream_chunk", (event) => {
+            setResponse(prev => prev + event.payload);
+            setIsLoading(false); // Stop loading indicator on first chunk
+        });
+
+        const unlistenDone = await listen("stream_done", () => {
             setIsLoading(false);
+            // Clean up listeners
+            unlistenChunk();
+            unlistenDone();
+            unlistenError();
+        });
+
+        const unlistenError = await listen<string>("stream_error", (event) => {
+            setResponse("Error processing query: " + event.payload);
+            setIsLoading(false);
+            // Clean up listeners
+            unlistenChunk();
+            unlistenDone();
+            unlistenError();
+        });
+
+        try {
+            await invoke("process_query_stream", {query});
+        } catch (error) {
+            setResponse("Error processing query: " + error);
+            setIsLoading(false);
+            // Clean up listeners
+            unlistenChunk();
+            unlistenDone();
+            unlistenError();
         }
     };
 
@@ -214,14 +224,20 @@ function App() {
                                     <circle cx="0" cy="100" r="2" fill="url(#wireGradient)" opacity="0.8"/>
                                 </g>
                             </svg>
-                            <input
+                            <textarea
                                 ref={inputRef}
-                                type="text"
                                 value={query}
-                                onChange={(e) => setQuery(e.target.value)}
+                                onChange={handleTextareaInput}
                                 placeholder="Type to Orbit"
                                 className="orbit-input"
                                 data-tauri-drag-region="false"
+                                rows={1}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' && !e.shiftKey) {
+                                        e.preventDefault();
+                                        handleSubmit(e);
+                                    }
+                                }}
                             />
                         </div>
 
@@ -234,7 +250,9 @@ function App() {
                             {isLoading ? (
                                 <div className="loading">Processing...</div>
                             ) : (
-                                <div className="response">{response}</div>
+                                <div className="response">
+                                    <ReactMarkdown>{response}</ReactMarkdown>
+                                </div>
                             )}
                         </div>
                     </div>

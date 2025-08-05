@@ -1,3 +1,4 @@
+use crate::services::chatbot::langchain::LangChainChatBot;
 use crate::{consts::*, Pinned, TrayMenu};
 use std::{
     ops::Deref,
@@ -139,7 +140,29 @@ pub fn update_tray_icon(app: &AppHandle, pinned: bool) {
 }
 
 #[tauri::command]
-pub fn process_query(query: String) -> String {
-    // Placeholder logic: return the query as is
-    query
+pub async fn process_query(query: String) -> Result<String, String> {
+    let chatbot = LangChainChatBot::new().map_err(|e| e.to_string())?;
+    chatbot.ask_orbit(&query).await.map_err(|e| e.to_string())
 }
+
+#[tauri::command]
+pub async fn process_query_stream(query: String, app_handle: AppHandle) -> Result<(), String> {
+    let chatbot = LangChainChatBot::new().map_err(|e| e.to_string())?;
+
+    chatbot
+        .ask_orbit_stream(&query, app_handle)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn resize_window(window: WebviewWindow, width: f64, height: f64) -> Result<(), String> {
+    use tauri::LogicalSize;
+    
+    window
+        .set_size(LogicalSize::new(width, height))
+        .map_err(|e| e.to_string())?;
+    
+    Ok(())
+}
+

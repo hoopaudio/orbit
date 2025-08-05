@@ -17,7 +17,7 @@ use std::{
     str::FromStr,
     sync::{atomic::AtomicBool, Mutex},
 };
-use tauri::{generate_handler, menu::Menu, Listener, LogicalSize, Manager, Wry};
+use tauri::{generate_handler, menu::Menu, Listener, Manager, Wry};
 use tauri_nspanel::ManagerExt;
 use tauri_plugin_global_shortcut::{Code, Modifiers, Shortcut, ShortcutState};
 use tauri_plugin_log::{Target, TargetKind};
@@ -124,6 +124,8 @@ fn main() {
             close_settings,
             open_settings,
             process_query,
+            process_query_stream,
+            resize_window,
             show,
             hide
         ]);
