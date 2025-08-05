@@ -3,7 +3,7 @@ use dotenv::dotenv;
 use tokio;
 
 #[tokio::test]
-async fn test_ask_orbit() -> Result<(), None> {
+async fn test_ask_orbit() -> Result<(), Box<dyn std::error::Error>> {
     dotenv().ok();
 
     let chatbot = LangChainChatBot::new()?;
