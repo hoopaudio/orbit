@@ -109,7 +109,11 @@ impl<R: Runtime> WebviewWindowExt for WebviewWindow<R> {
                 // Position 25px below top to avoid menu bar
                 y: monitor_position.y + monitor_size.height - window_frame.size.height - 25.0,
             },
-            _ => return Err(TauriError::Anyhow(Error::InvalidPosition(position.to_string()).into())),
+            _ => {
+                return Err(TauriError::Anyhow(
+                    Error::InvalidPosition(position.to_string()).into(),
+                ))
+            }
         };
 
         let rect = NSRect {
