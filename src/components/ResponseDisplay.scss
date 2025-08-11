@@ -11,8 +11,7 @@
   max-width: 450px;
   width: 100%;
   margin: 8px auto 0;
-  max-height: calc(100vh - 140px);
-  overflow-y: auto;
+  overflow-y: visible;
   animation: fadeInUp 0.5s ease-out;
 
   .response-text {

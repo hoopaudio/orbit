@@ -9,12 +9,18 @@ export const useWindowResize = (
     useEffect(() => {
         if (!containerRef.current) return;
         
-        const containerHeight = containerRef.current.scrollHeight;
-        const windowHeight = Math.min(Math.max(containerHeight + 40, 120), 600);
-        
-        invoke("resize_window", {
-            width: 550,
-            height: windowHeight
-        }).catch(console.error);
+        // Use a small delay to ensure DOM has updated after content change
+        setTimeout(() => {
+            if (!containerRef.current) return;
+            
+            const containerHeight = containerRef.current.scrollHeight;
+            // Add more padding: 25px top padding + 40px bottom padding + extra buffer
+            const windowHeight = Math.min(Math.max(containerHeight + 80, 120), 800);
+            
+            invoke("resize_window", {
+                width: 550,
+                height: windowHeight
+            }).catch(console.error);
+        }, 100);
     }, [response, isLoading]);
 };
