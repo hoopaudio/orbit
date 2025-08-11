@@ -1,0 +1,13 @@
+@use '../warm_space_palette' as warm;
+
+// Orbit logo styling
+.orbit-logo {
+  width: 40px;
+  height: 40px;
+  opacity: 0.9;
+  flex-basis: auto;
+  flex-grow: 1;
+
+  // Subtle glow effect  
+  filter: drop-shadow(0 0 8px rgba(warm.$tangelo, 0.4));
+}

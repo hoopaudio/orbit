@@ -1,0 +1,52 @@
+@use '../palette';
+@use '../styles/animations';
+
+// Main app container
+.orbit-container {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  background: transparent;
+  padding-top: 25px;
+
+  // Prevent text selection during drag
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+// Main content overlay
+.orbit-overlay {
+  background: transparent;
+  width: 100%;
+  max-width: 450px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow: visible;
+  animation: fadeInUp 0.3s ease-out;
+}
+
+// Form wrapper
+.orbit-form {
+  width: 100%;
+  position: relative;
+  overflow: visible;
+}
+
+// Settings page container
+.settings-container {
+  width: 100vw;
+  height: 100vh;
+  padding: 20px;
+  background: palette.$onyx;
+  color: palette.$seasalt;
+
+  h1 {
+    font-size: 1.5em;
+    margin-bottom: 20px;
+  }
+}

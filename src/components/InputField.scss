@@ -1,0 +1,135 @@
+@use '../palette';
+@use '../warm_space_palette' as warm;
+@use '../styles/mixins';
+@use '../styles/animations';
+
+// Input wrapper with glass effects and animations
+.input-wrapper {
+  position: relative;
+  border-radius: 42px;
+  overflow: visible;
+  z-index: 1;
+  min-width: 350px;
+  max-width: 450px;
+  width: 100%;
+  margin: 0 auto;
+  cursor: text;
+
+  @include mixins.warm-glow(0.4);
+  animation: warm-pulse 3s ease-in-out infinite;
+}
+
+// Input content layout (logo + input)
+.input-content {
+  display: flex;
+  align-items: center;
+  z-index: 10;
+  padding: 2px 19px;
+  height: 100%;
+}
+
+// Bottom layer: Warm colors underneath
+.warm-background {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 42px;
+  z-index: -2;
+
+  // Vibrant warm gradient background
+  background: warm.$gradient-right;
+  background-size: 200% auto;
+  filter: saturate(1.5);
+  animation: gradient-flow 8s linear infinite;
+}
+
+// Top layer: Transparent glass with reflections
+.glass-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 42px;
+  z-index: -1;
+
+  // Glass layer with transparency
+  background: linear-gradient(135deg,
+          rgba(palette.$seasalt, 0.05) 0%,
+          rgba(palette.$seasalt, 0.02) 50%,
+          rgba(palette.$seasalt, 0.04) 100%),
+  rgba(palette.$onyx, 0.68);
+  opacity: 90%;
+
+  // Enhanced glass properties
+  border: 1px solid rgba(palette.$seasalt, 0.2);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+}
+
+// Glass highlight reflection on top half
+.glass-highlight {
+  position: absolute;
+  top: 1px;
+  left: 1px;
+  right: 1px;
+  height: 50%;
+  border-radius: 42px 42px 20px 20px;
+  background: linear-gradient(180deg,
+          rgba(palette.$seasalt, 0.3) 0%,
+          rgba(palette.$seasalt, 0.1) 50%,
+          transparent 100%);
+  filter: blur(2px);
+  pointer-events: none;
+  opacity: 1%;
+}
+
+// The actual input element
+.orbit-input {
+  position: relative;
+  width: 100%;
+  background: transparent;
+  border: none;
+  border-radius: 40px;
+  color: palette.$seasalt;
+  outline: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  transition: all 0.3s ease;
+  z-index: 10;
+  cursor: text;
+  padding-left: 8px;
+  font-size: 0.99em;
+  min-height: 20px;
+  resize: none;
+  overflow: hidden;
+  line-height: 1.4;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+  'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+
+  // Re-enable text selection for input
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+  user-select: text;
+
+  &::placeholder {
+    color: rgba(palette.$seasalt, 0.7);
+  }
+
+  &:focus {
+    background: transparent;
+    outline: none;
+  }
+
+  &:focus-visible {
+    outline: none;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+  }
+}
