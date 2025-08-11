@@ -127,7 +127,9 @@ fn main() {
             process_query_stream,
             resize_window,
             show,
-            hide
+            hide,
+            services::screenshot::take_screenshot,
+            services::screenshot::screenshot_and_analyze
         ]);
 
     app.build(tauri::generate_context!())

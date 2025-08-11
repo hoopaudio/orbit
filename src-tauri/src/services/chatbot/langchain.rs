@@ -1,21 +1,18 @@
 use std::env;
+use std::sync::Arc;
 
 use crate::services::chatbot::models::{KIMI_K2, OPENROUTER_BASE_URL};
+use crate::services::chatbot::tools::ScreenshotTool;
 use anyhow::{anyhow, Result};
-use futures_util::StreamExt;
-use langchain_rust::chain::{Chain, LLMChainBuilder};
-use langchain_rust::prompt::HumanMessagePromptTemplate;
-use langchain_rust::schemas::Message;
-use langchain_rust::{
-    fmt_message, fmt_template,
-    language_models::llm::LLM,
-    llm::openai::{OpenAI, OpenAIConfig},
-    message_formatter, prompt_args, template_fstring,
-};
+use langchain_rust::agent::{AgentExecutor, OpenAiToolAgent, OpenAiToolAgentBuilder};
+use langchain_rust::chain::{options::ChainCallOptions, Chain};
+use langchain_rust::llm::openai::{OpenAI, OpenAIConfig};
+use langchain_rust::memory::SimpleMemory;
+use langchain_rust::prompt_args;
 use tauri::{AppHandle, Emitter};
 
 pub struct LangChainChatBot {
-    llm: OpenAI<OpenAIConfig>,
+    agent_executor: AgentExecutor<OpenAiToolAgent>,
 }
 
 impl LangChainChatBot {
@@ -31,60 +28,44 @@ impl LangChainChatBot {
             )
             .with_model(KIMI_K2);
 
-        Ok(Self { llm })
+        let memory = SimpleMemory::new();
+        let screenshot_tool = ScreenshotTool::new();
+
+        let agent = OpenAiToolAgentBuilder::new()
+            .tools(&[Arc::new(screenshot_tool)])
+            .options(ChainCallOptions::new().with_max_tokens(2000))
+            .build(llm)
+            .map_err(|e| anyhow!("Failed to build agent: {:?}", e))?;
+
+        let agent_executor = AgentExecutor::from_agent(agent).with_memory(memory.into());
+
+        Ok(Self { agent_executor })
     }
 
     pub async fn ask_orbit(&self, question: &str) -> Result<String> {
-        let prompt = format!(
-            "You are Orbit, a helpful assistant. User: {}\nOrbit:",
-            question
-        );
+        let input_variables = prompt_args! {
+            "input" => question
+        };
 
-        self.llm
-            .invoke(&prompt)
+        self.agent_executor
+            .invoke(input_variables)
             .await
-            .map_err(|e| anyhow!("LLM invocation failed: {}", e))
+            .map_err(|e| anyhow!("Agent invocation failed: {:?}", e))
     }
     pub async fn ask_orbit_stream(&self, question: &str, app_handle: AppHandle) -> Result<()> {
-        let prompt = message_formatter![
-            fmt_message!(Message::new_system_message(
-                "You are Orbit, a helpful assistant.",
-            )),
-            fmt_template!(HumanMessagePromptTemplate::new(template_fstring!(
-                "{input}", "input"
-            )))
-        ];
+        let input_variables = prompt_args! {
+            "input" => question
+        };
 
-        let chain = LLMChainBuilder::new()
-            .prompt(prompt)
-            .llm(self.llm.clone())
-            .build()
-            .map_err(|e| anyhow!("Failed to build chain: {:?}", e))?;
-
-        let mut stream = chain
-            .stream(prompt_args! {
-                "input" => question
-            })
+        let response = self
+            .agent_executor
+            .invoke(input_variables)
             .await
-            .map_err(|e| anyhow!("Failed to start stream: {:?}", e))?;
+            .map_err(|e| anyhow!("Agent execution failed: {:?}", e))?;
 
-        while let Some(result) = stream.next().await {
-            match result {
-                Ok(value) => {
-                    let chunk_text = format!("{}", value.content);
-
-                    app_handle
-                        .emit("stream_chunk", chunk_text)
-                        .map_err(|e| anyhow!("Failed to emit chunk: {}", e))?;
-                }
-                Err(e) => {
-                    app_handle
-                        .emit("stream_error", format!("Stream error: {:?}", e))
-                        .map_err(|e| anyhow!("Failed to emit error: {}", e))?;
-                    return Err(anyhow!("Streaming failed: {:?}", e));
-                }
-            }
-        }
+        app_handle
+            .emit("stream_chunk", response)
+            .map_err(|e| anyhow!("Failed to emit response: {}", e))?;
 
         app_handle
             .emit("stream_done", ())
