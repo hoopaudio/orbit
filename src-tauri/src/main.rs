@@ -128,8 +128,8 @@ fn main() {
             resize_window,
             show,
             hide,
-            services::screenshot::take_screenshot,
-            services::screenshot::screenshot_and_analyze
+            services::screenshot::capture_screenshot,
+            services::screenshot::capture_screenshot_with_ocr
         ]);
 
     app.build(tauri::generate_context!())

@@ -23,9 +23,9 @@ impl Tool for ScreenshotTool {
     }
 
     async fn run(&self, _input: Value) -> Result<String, Box<dyn Error>> {
-        match ScreenshotService::capture_and_analyze().await {
+        match ScreenshotService::capture_with_ocr().await {
             Ok(analysis) => {
-                let result = if analysis.extracted_text.trim().is_empty() || analysis.extracted_text.contains("Screenshot captured at") {
+                let result = if analysis.ocr_result.extracted_text.trim().is_empty() || analysis.ocr_result.extracted_text.contains("Screenshot captured at") {
                     format!(
                         "I captured a screenshot of your screen ({}x{} pixels). The image shows your current display but I couldn't extract readable text from it. This might be because the screen contains mostly graphics, images, or non-text content.",
                         analysis.screenshot_info.width,
@@ -36,7 +36,7 @@ impl Tool for ScreenshotTool {
                         "I captured a screenshot of your screen ({}x{} pixels) and found the following text content:\n\n{}",
                         analysis.screenshot_info.width,
                         analysis.screenshot_info.height,
-                        analysis.extracted_text
+                        analysis.ocr_result.extracted_text
                     )
                 };
                 Ok(result)
