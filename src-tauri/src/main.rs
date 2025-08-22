@@ -13,6 +13,7 @@ use crate::consts::{MAIN_WINDOW_NAME, ORBIT_LABEL, SETTINGS_WINDOW_NAME};
 use crate::tray::Tray;
 use commands::*;
 use dotenv::dotenv;
+use services::screenshot::ScreenshotService;
 use std::{
     str::FromStr,
     sync::{atomic::AtomicBool, Mutex},
@@ -48,7 +49,6 @@ fn main() {
     let mut app = tauri::Builder::default()
         .plugin(window_state_plugin.build())
         .plugin(tauri_plugin_websocket::init())
-        .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_os::init())
@@ -76,6 +76,10 @@ fn main() {
                             window.position("top_right").unwrap();
 
                             panel.show();
+                            window.set_focus().unwrap();
+                            
+                            // Focus the input field after showing the window
+                            let _ = window.eval("setTimeout(() => { const input = document.querySelector('textarea'); if (input) input.focus(); }, 50);");
                         }
                     }
                 })
@@ -127,9 +131,7 @@ fn main() {
             process_query_stream,
             resize_window,
             show,
-            hide,
-            services::screenshot::capture_screenshot,
-            services::screenshot::capture_screenshot_with_ocr
+            hide
         ]);
 
     app.build(tauri::generate_context!())
@@ -148,6 +150,12 @@ fn main() {
 
                 if label == MAIN_WINDOW_NAME {
                     app.save_window_state(StateFlags::POSITION | StateFlags::SIZE);
+
+                    // Clean up all screenshots before exit
+                    if let Err(e) = ScreenshotService::cleanup_all_screenshots(&app.app_handle()) {
+                        log::warn!("Failed to clean up screenshots on exit: {}", e);
+                    }
+
                     std::process::exit(0);
                 } else {
                     api.prevent_close();

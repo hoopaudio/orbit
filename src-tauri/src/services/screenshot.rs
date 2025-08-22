@@ -1,6 +1,8 @@
 use anyhow::Result;
 use image::{DynamicImage, ImageFormat};
 use serde::{Deserialize, Serialize};
+use std::time::SystemTime;
+use tauri::{AppHandle, Manager};
 use xcap::Monitor;
 
 use super::ocr::{OcrResult, OcrService};
@@ -22,7 +24,11 @@ pub struct ScreenshotAnalysis {
 pub struct ScreenshotService;
 
 impl ScreenshotService {
-    pub async fn capture(width: u32, height: u32) -> Result<ScreenshotInfo> {
+    pub async fn capture<R: tauri::Runtime>(
+        app_handle: &AppHandle<R>,
+        width: u32,
+        height: u32,
+    ) -> Result<ScreenshotInfo> {
         let monitors = Monitor::all()?;
         let primary = monitors
             .into_iter()
@@ -37,9 +43,19 @@ impl ScreenshotService {
         let resized =
             dynamic_image.resize_exact(width, height, image::imageops::FilterType::Lanczos3);
 
-        let temp_dir = std::env::temp_dir();
+        // Use Tauri's cache directory for screenshots
+        let cache_dir = app_handle
+            .path()
+            .cache_dir()
+            .map_err(|e| anyhow::anyhow!("Failed to get cache directory: {}", e))?;
+        let screenshot_dir = cache_dir.join("orbit_screenshots");
+
+        // Ensure the screenshot directory exists
+        std::fs::create_dir_all(&screenshot_dir)
+            .map_err(|e| anyhow::anyhow!("Failed to create screenshot directory: {}", e))?;
+
         let filename = format!("orbit_screenshot_{}x{}_{}.png", width, height, timestamp);
-        let file_path = temp_dir.join(&filename);
+        let file_path = screenshot_dir.join(&filename);
 
         resized.save_with_format(&file_path, ImageFormat::Png)?;
 
@@ -51,38 +67,59 @@ impl ScreenshotService {
         })
     }
 
-    pub async fn capture_hd() -> Result<ScreenshotInfo> {
-        Self::capture(1280, 720).await
+    pub async fn capture_hd<R: tauri::Runtime>(app_handle: &AppHandle<R>) -> Result<ScreenshotInfo> {
+        Self::capture(app_handle, 1280, 720).await
     }
 
+    pub async fn capture_with_ocr<R: tauri::Runtime>(app_handle: &AppHandle<R>) -> Result<ScreenshotAnalysis> {
+        let screenshot = Self::capture_hd(app_handle).await?;
 
-    pub async fn capture_with_ocr() -> Result<ScreenshotAnalysis> {
-        let screenshot = Self::capture_hd().await?;
-        
         let fallback_message = format!(
             "Screenshot captured at {} with dimensions {}x{} pixels",
             screenshot.timestamp, screenshot.width, screenshot.height
         );
-        
-        let ocr_result = OcrService::extract_text_with_fallback(&screenshot.file_path, &fallback_message).await;
+
+        let ocr_result =
+            OcrService::extract_text_with_fallback(&screenshot.file_path, &fallback_message).await;
 
         Ok(ScreenshotAnalysis {
             screenshot_info: screenshot,
             ocr_result,
         })
     }
-}
 
-#[tauri::command]
-pub async fn capture_screenshot() -> Result<ScreenshotInfo, String> {
-    ScreenshotService::capture_hd()
-        .await
-        .map_err(|e| e.to_string())
-}
+    /// Clean up all screenshot files (called on app exit)
+    pub fn cleanup_all_screenshots<R: tauri::Runtime>(app_handle: &AppHandle<R>) -> Result<()> {
+        let cache_dir = app_handle
+            .path()
+            .cache_dir()
+            .map_err(|e| anyhow::anyhow!("Failed to get cache directory: {}", e))?;
+        let screenshot_dir = cache_dir.join("orbit_screenshots");
 
-#[tauri::command]
-pub async fn capture_screenshot_with_ocr() -> Result<ScreenshotAnalysis, String> {
-    ScreenshotService::capture_with_ocr()
-        .await
-        .map_err(|e| e.to_string())
+        if !screenshot_dir.exists() {
+            return Ok(());
+        }
+
+        if let Ok(read_dir) = std::fs::read_dir(&screenshot_dir) {
+            for entry_result in read_dir {
+                if let Ok(entry) = entry_result {
+                    let path = entry.path();
+                    if path.extension().map_or(false, |ext| ext == "png") {
+                        if let Err(e) = std::fs::remove_file(&path) {
+                            log::warn!("Failed to remove screenshot {:?}: {}", path, e);
+                        } else {
+                            log::debug!("Cleaned up screenshot: {:?}", path);
+                        }
+                    }
+                }
+            }
+        }
+
+        // Remove the directory if it's empty
+        if let Err(e) = std::fs::remove_dir(&screenshot_dir) {
+            log::debug!("Screenshot directory not empty or failed to remove: {}", e);
+        }
+
+        Ok(())
+    }
 }

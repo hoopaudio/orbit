@@ -9,9 +9,14 @@ use tauri_nspanel::ManagerExt;
 
 #[tauri::command]
 pub fn show(app_handle: AppHandle) {
+    let window = app_handle.get_webview_window(ORBIT_LABEL).unwrap();
     let panel = app_handle.get_webview_panel(ORBIT_LABEL).unwrap();
 
     panel.show();
+    window.set_focus().unwrap();
+    
+    // Focus the input field after showing the window
+    let _ = window.eval("setTimeout(() => { const input = document.querySelector('textarea'); if (input) input.focus(); }, 50);");
 }
 
 #[tauri::command]
@@ -140,14 +145,14 @@ pub fn update_tray_icon(app: &AppHandle, pinned: bool) {
 }
 
 #[tauri::command]
-pub async fn process_query(query: String) -> Result<String, String> {
-    let chatbot = LangChainChatBot::new().map_err(|e| e.to_string())?;
+pub async fn process_query(query: String, app_handle: AppHandle) -> Result<String, String> {
+    let chatbot = LangChainChatBot::new(app_handle).map_err(|e| e.to_string())?;
     chatbot.ask_orbit(&query).await.map_err(|e| e.to_string())
 }
 
 #[tauri::command]
 pub async fn process_query_stream(query: String, app_handle: AppHandle) -> Result<(), String> {
-    let chatbot = LangChainChatBot::new().map_err(|e| e.to_string())?;
+    let chatbot = LangChainChatBot::new(app_handle.clone()).map_err(|e| e.to_string())?;
 
     chatbot
         .ask_orbit_stream(&query, app_handle)

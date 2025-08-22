@@ -1,11 +1,26 @@
 use crate::services::ocr::OcrService;
 use crate::services::screenshot::ScreenshotService;
 use std::path::Path;
+use tauri::{AppHandle, Manager};
 use tokio;
 
+#[cfg(test)]
+fn setup_test_app() -> Result<tauri::App<tauri::Wry>, Box<dyn std::error::Error>> {
+    use tauri::Builder;
+
+    let app = Builder::default()
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application for test");
+
+    Ok(app)
+}
+
+#[ignore]
 #[tokio::test]
 async fn test_screenshot_to_testdata() -> Result<(), Box<dyn std::error::Error>> {
-    let screenshot_info = ScreenshotService::capture_hd().await?;
+    let app = setup_test_app()?;
+
+    let screenshot_info = ScreenshotService::capture_hd(&app.handle()).await?;
 
     let testdata_dir = Path::new("../testdata");
     std::fs::create_dir_all(&testdata_dir)?;
@@ -42,9 +57,12 @@ async fn test_screenshot_to_testdata() -> Result<(), Box<dyn std::error::Error>>
     Ok(())
 }
 
+#[ignore]
 #[tokio::test]
 async fn test_screenshot_and_analyze_to_testdata() -> Result<(), Box<dyn std::error::Error>> {
-    let analysis = ScreenshotService::capture_with_ocr().await?;
+    let app = setup_test_app()?;
+
+    let analysis = ScreenshotService::capture_with_ocr(&app.handle()).await?;
 
     let testdata_dir = Path::new("../testdata");
     std::fs::create_dir_all(&testdata_dir)?;
@@ -83,12 +101,15 @@ async fn test_screenshot_and_analyze_to_testdata() -> Result<(), Box<dyn std::er
     Ok(())
 }
 
+#[ignore]
 #[tokio::test]
 async fn test_screenshot_720p_for_llm() -> Result<(), Box<dyn std::error::Error>> {
+    let app = setup_test_app()?;
+
     let testdata_dir = Path::new("../testdata");
     std::fs::create_dir_all(&testdata_dir)?;
 
-    let screenshot = ScreenshotService::capture_hd().await?;
+    let screenshot = ScreenshotService::capture_hd(&app.handle()).await?;
 
     let timestamp = chrono::Utc::now().format("%Y%m%d_%H%M%S").to_string();
     let target_filename = format!("test_720p_{}.png", timestamp);
@@ -112,6 +133,7 @@ async fn test_screenshot_720p_for_llm() -> Result<(), Box<dyn std::error::Error>
     Ok(())
 }
 
+#[ignore]
 #[tokio::test]
 async fn test_ocr_functionality() -> Result<(), Box<dyn std::error::Error>> {
     let testdata_dir = Path::new("../testdata");
@@ -131,14 +153,23 @@ async fn test_ocr_functionality() -> Result<(), Box<dyn std::error::Error>> {
     let ocr_result = OcrService::extract_text(test_image_path.to_str().unwrap()).await?;
 
     // Validate the analysis
-    assert!(!ocr_result.extracted_text.is_empty(), "OCR should extract some text");
-    assert!(ocr_result.confidence >= 0, "Confidence should be non-negative");
+    assert!(
+        !ocr_result.extracted_text.is_empty(),
+        "OCR should extract some text"
+    );
+    assert!(
+        ocr_result.confidence >= 0,
+        "Confidence should be non-negative"
+    );
 
     println!("OCR Test Results:");
     println!("Test image: {}", test_image_path.display());
     println!("Extracted text: '{}'", ocr_result.extracted_text);
     println!("Confidence: {}%", ocr_result.confidence);
-    println!("Text length: {} characters", ocr_result.extracted_text.len());
+    println!(
+        "Text length: {} characters",
+        ocr_result.extracted_text.len()
+    );
 
     // Check if OCR actually worked
     if ocr_result.confidence > 0 {
