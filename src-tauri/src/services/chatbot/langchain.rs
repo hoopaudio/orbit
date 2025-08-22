@@ -2,6 +2,7 @@ use std::env;
 use std::sync::Arc;
 
 use crate::services::chatbot::models::{GEMINI_FLASH_2_FREE, OPENROUTER_BASE_URL};
+use crate::services::chatbot::system_prompt::ORBIT_SYSTEM_PROMPT;
 use crate::services::chatbot::tools::ScreenshotTool;
 use anyhow::{anyhow, Result};
 use base64::{engine::general_purpose::STANDARD as BASE64_STANDARD, Engine};
@@ -102,8 +103,9 @@ impl LangChainChatBot {
     }
 
     pub async fn ask_orbit(&self, question: &str) -> Result<String> {
+        let input_with_system_prompt = format!("{}\n\nUser: {}", ORBIT_SYSTEM_PROMPT, question);
         let input_variables = prompt_args! {
-            "input" => question
+            "input" => input_with_system_prompt
         };
 
         self.agent_executor
@@ -112,7 +114,7 @@ impl LangChainChatBot {
             .map_err(|e| {
                 let error_str = format!("{:?}", e);
                 if error_str.contains("429") || error_str.contains("failed to deserialize api response: invalid type: integer `429`") {
-                    anyhow!("Rate limit exceeded (429). The API is temporarily unavailable due to rate limiting. Please try again in a few minutes or consider upgrading to a paid tier.")
+                    anyhow!("🚀 You're using Orbit like a pro! You've hit your free usage limit.\n\nUpgrade to Orbit Pro for unlimited AI conversations, faster responses, and premium features.\n\nTry again in a few minutes or upgrade now at orbit.app/pro")
                 } else if error_str.contains("deserialize") && error_str.contains("integer") {
                     anyhow!("API response parsing error: {}", error_str)
                 } else {
@@ -122,8 +124,9 @@ impl LangChainChatBot {
     }
 
     pub async fn ask_orbit_stream(&self, question: &str, app_handle: AppHandle) -> Result<()> {
+        let input_with_system_prompt = format!("{}\n\nUser: {}", ORBIT_SYSTEM_PROMPT, question);
         let input_variables = prompt_args! {
-            "input" => question
+            "input" => input_with_system_prompt
         };
 
         let response = self
@@ -133,7 +136,7 @@ impl LangChainChatBot {
             .map_err(|e| {
                 let error_str = format!("{:?}", e);
                 if error_str.contains("429") || error_str.contains("failed to deserialize api response: invalid type: integer `429`") {
-                    anyhow!("Rate limit exceeded (429). The API is temporarily unavailable due to rate limiting. Please try again in a few minutes or consider upgrading to a paid tier.")
+                    anyhow!("🚀 You're using Orbit like a pro! You've hit your free usage limit.\n\nUpgrade to Orbit Pro for unlimited AI conversations, faster responses, and premium features.\n\nTry again in a few minutes or upgrade now at orbit.app/pro")
                 } else if error_str.contains("deserialize") && error_str.contains("integer") {
                     anyhow!("API response parsing error: {}", error_str)
                 } else {
@@ -157,8 +160,9 @@ impl LangChainChatBot {
         question: &str,
         app_handle: AppHandle,
     ) -> Result<()> {
+        let input_with_system_prompt = format!("{}\n\nUser: {}", ORBIT_SYSTEM_PROMPT, question);
         let input_variables = prompt_args! {
-            "input" => question
+            "input" => input_with_system_prompt
         };
 
         let response = self
@@ -168,7 +172,7 @@ impl LangChainChatBot {
             .map_err(|e| {
                 let error_str = format!("{:?}", e);
                 if error_str.contains("429") || error_str.contains("failed to deserialize api response: invalid type: integer `429`") {
-                    anyhow!("Rate limit exceeded (429). The API is temporarily unavailable due to rate limiting. Please try again in a few minutes or consider upgrading to a paid tier.")
+                    anyhow!("🚀 You're using Orbit like a pro! You've hit your free usage limit.\n\nUpgrade to Orbit Pro for unlimited AI conversations, faster responses, and premium features.\n\nTry again in a few minutes or upgrade now at orbit.app/pro")
                 } else if error_str.contains("deserialize") && error_str.contains("integer") {
                     anyhow!("API response parsing error: {}", error_str)
                 } else {
@@ -193,10 +197,10 @@ impl LangChainChatBot {
             std::fs::read(image_path).map_err(|e| anyhow!("Failed to read image file: {}", e))?;
         let image_base64 = BASE64_STANDARD.encode(image_data);
 
-        // Create input with image
+        // Create input with image and system prompt
         let input_with_image = format!(
-            "{}\n\nImage: data:image/png;base64,{}",
-            question, image_base64
+            "{}\n\nUser: {}\n\nImage: data:image/png;base64,{}",
+            ORBIT_SYSTEM_PROMPT, question, image_base64
         );
 
         let input_variables = prompt_args! {
@@ -209,7 +213,7 @@ impl LangChainChatBot {
             .map_err(|e| {
                 let error_str = format!("{:?}", e);
                 if error_str.contains("429") || error_str.contains("failed to deserialize api response: invalid type: integer `429`") {
-                    anyhow!("Rate limit exceeded (429). The API is temporarily unavailable due to rate limiting. Please try again in a few minutes or consider upgrading to a paid tier.")
+                    anyhow!("🚀 You're using Orbit like a pro! You've hit your free usage limit.\n\nUpgrade to Orbit Pro for unlimited AI conversations, faster responses, and premium features.\n\nTry again in a few minutes or upgrade now at orbit.app/pro")
                 } else if error_str.contains("deserialize") && error_str.contains("integer") {
                     anyhow!("API response parsing error: {}", error_str)
                 } else {

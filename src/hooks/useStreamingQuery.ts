@@ -1,6 +1,6 @@
-import { useState } from 'react';
-import { invoke } from "@tauri-apps/api/core";
-import { listen } from "@tauri-apps/api/event";
+import {useState} from 'react';
+import {invoke} from "@tauri-apps/api/core";
+import {listen} from "@tauri-apps/api/event";
 
 export const useStreamingQuery = () => {
     const [response, setResponse] = useState("");
@@ -25,7 +25,7 @@ export const useStreamingQuery = () => {
         });
 
         const unlistenError = await listen<string>("stream_error", (event) => {
-            setResponse("Error processing query: " + event.payload);
+            setResponse(event.payload);
             setIsLoading(false);
             unlistenChunk();
             unlistenDone();
@@ -33,9 +33,9 @@ export const useStreamingQuery = () => {
         });
 
         try {
-            await invoke("process_query_stream", { query });
+            await invoke("process_query_stream", {query});
         } catch (error) {
-            setResponse("Error processing query: " + error);
+            setResponse(error + "");
             setIsLoading(false);
             unlistenChunk();
             unlistenDone();
