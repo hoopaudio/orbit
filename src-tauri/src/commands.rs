@@ -14,7 +14,7 @@ pub fn show(app_handle: AppHandle) {
 
     panel.show();
     window.set_focus().unwrap();
-    
+
     // Focus the input field after showing the window
     let _ = window.eval("setTimeout(() => { const input = document.querySelector('textarea'); if (input) input.focus(); }, 50);");
 }
@@ -163,11 +163,10 @@ pub async fn process_query_stream(query: String, app_handle: AppHandle) -> Resul
 #[tauri::command]
 pub fn resize_window(window: WebviewWindow, width: f64, height: f64) -> Result<(), String> {
     use tauri::LogicalSize;
-    
+
     window
         .set_size(LogicalSize::new(width, height))
         .map_err(|e| e.to_string())?;
-    
+
     Ok(())
 }
-

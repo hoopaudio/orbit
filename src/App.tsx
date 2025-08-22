@@ -1,19 +1,19 @@
-import React, { useRef } from "react";
-import { OrbitLogo } from "./components/OrbitLogo";
-import { InputField } from "./components/InputField";
-import { ResponseDisplay } from "./components/ResponseDisplay";
-import { useWindowResize } from "./hooks/useWindowResize";
-import { useWindowEvents } from "./hooks/useWindowEvents";
-import { useStreamingQuery } from "./hooks/useStreamingQuery";
-import { useTextareaResize } from "./hooks/useTextareaResize";
+import React, {useRef} from "react";
+import {OrbitLogo} from "./components/OrbitLogo";
+import {InputField} from "./components/InputField";
+import {ResponseDisplay} from "./components/ResponseDisplay";
+import {useWindowResize} from "./hooks/useWindowResize";
+import {useWindowEvents} from "./hooks/useWindowEvents";
+import {useStreamingQuery} from "./hooks/useStreamingQuery";
+import {useTextareaResize} from "./hooks/useTextareaResize";
 import "./App.scss";
 
 function App() {
     const inputRef = useRef<HTMLTextAreaElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
-    
-    const { query, handleTextareaInput, setQuery } = useTextareaResize();
-    const { response, isLoading, processQuery, setResponse, setIsLoading } = useStreamingQuery();
+
+    const {query, handleTextareaInput, setQuery} = useTextareaResize();
+    const {response, isLoading, processQuery, setResponse, setIsLoading} = useStreamingQuery();
 
     useWindowResize(containerRef, response, isLoading);
     useWindowEvents(inputRef, setQuery, setResponse, setIsLoading);
@@ -35,9 +35,9 @@ function App() {
                     <div className="input-wrapper">
                         <div className="warm-background"></div>
                         <div className="glass-layer"></div>
-                        
+
                         <div className="input-content">
-                            <OrbitLogo />
+                            <OrbitLogo/>
                             <InputField
                                 ref={inputRef}
                                 value={query}
@@ -48,7 +48,7 @@ function App() {
                     </div>
                 </form>
 
-                <ResponseDisplay response={response} isLoading={isLoading} />
+                <ResponseDisplay response={response} isLoading={isLoading}/>
             </div>
         </div>
     );
