@@ -10,8 +10,9 @@
   padding: 16px 20px;
   max-width: 450px;
   width: 100%;
-  margin: 8px auto 0;
-  overflow-y: visible;
+  margin: 8px auto 16px;
+  max-height: 400px;
+  overflow-y: auto;
   animation: fadeInUp 0.5s ease-out;
 
   .response-text {
