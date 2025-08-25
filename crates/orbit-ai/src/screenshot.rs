@@ -1,11 +1,10 @@
 use anyhow::Result;
 use image::{DynamicImage, ImageFormat};
 use serde::{Deserialize, Serialize};
-use std::time::SystemTime;
 use tauri::{AppHandle, Manager};
 use xcap::Monitor;
 
-use super::ocr::{OcrResult, OcrService};
+use crate::ocr::{OcrResult, OcrService};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ScreenshotInfo {
@@ -67,11 +66,15 @@ impl ScreenshotService {
         })
     }
 
-    pub async fn capture_hd<R: tauri::Runtime>(app_handle: &AppHandle<R>) -> Result<ScreenshotInfo> {
+    pub async fn capture_hd<R: tauri::Runtime>(
+        app_handle: &AppHandle<R>,
+    ) -> Result<ScreenshotInfo> {
         Self::capture(app_handle, 1280, 720).await
     }
 
-    pub async fn capture_with_ocr<R: tauri::Runtime>(app_handle: &AppHandle<R>) -> Result<ScreenshotAnalysis> {
+    pub async fn capture_with_ocr<R: tauri::Runtime>(
+        app_handle: &AppHandle<R>,
+    ) -> Result<ScreenshotAnalysis> {
         let screenshot = Self::capture_hd(app_handle).await?;
 
         let fallback_message = format!(

@@ -1,4 +1,4 @@
-use crate::services::screenshot::ScreenshotService;
+use crate::screenshot::ScreenshotService;
 use async_trait::async_trait;
 use langchain_rust::tools::Tool;
 use serde_json::Value;
@@ -29,12 +29,13 @@ impl<R: tauri::Runtime> Tool for ScreenshotTool<R> {
     }
 
     async fn run(&self, _input: Value) -> Result<String, Box<dyn Error>> {
-        let analysis = ScreenshotService::capture_with_ocr(&self.app_handle).await
+        let analysis = ScreenshotService::capture_with_ocr(&self.app_handle)
+            .await
             .map_err(|e| format!("Failed to capture screenshot: {}", e))?;
 
         let extracted_text = analysis.ocr_result.extracted_text.trim();
-        let has_meaningful_text = !extracted_text.is_empty() 
-            && !extracted_text.contains("Screenshot captured at");
+        let has_meaningful_text =
+            !extracted_text.is_empty() && !extracted_text.contains("Screenshot captured at");
 
         let result = if has_meaningful_text {
             format!(

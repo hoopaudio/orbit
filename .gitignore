@@ -24,7 +24,13 @@ dist-ssr
 *.sw?
 yeet.md
 
+# Rust
+/target/
+/crates/*/target/
 Cargo.lock
+**/*.rs.bk
+
+# Environment and config
 .env
 CLAUDE.md
 .crush

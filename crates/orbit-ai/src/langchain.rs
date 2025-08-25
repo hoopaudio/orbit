@@ -1,9 +1,12 @@
 use std::env;
 use std::sync::Arc;
 
-use crate::services::chatbot::models::{GEMINI_FLASH_2_FREE, OPENROUTER_BASE_URL};
-use crate::services::chatbot::system_prompt::ORBIT_SYSTEM_PROMPT;
-use crate::services::chatbot::tools::ScreenshotTool;
+use crate::models::{
+    DEEPSEEK_R1, GEMINI_FLASH_2_FREE, GEMMA_3_27B_IT_FREE, KIMI_K2, KIMI_VL_A3B_THINKING_FREE,
+    MISTRAL_SMALL_3DOT2_24B_FREE, OPENROUTER_BASE_URL, QWEN2DOT5_VL_72B_FREE,
+};
+use crate::system_prompt::ORBIT_SYSTEM_PROMPT;
+use crate::tools::ScreenshotTool;
 use anyhow::{anyhow, Result};
 use base64::{engine::general_purpose::STANDARD as BASE64_STANDARD, Engine};
 use langchain_rust::agent::{
@@ -14,8 +17,23 @@ use langchain_rust::chain::{options::ChainCallOptions, Chain};
 use langchain_rust::llm::openai::{OpenAI, OpenAIConfig};
 use langchain_rust::memory::SimpleMemory;
 use langchain_rust::prompt_args;
-use langchain_rust::schemas::BaseMemory;
 use tauri::{AppHandle, Emitter};
+
+const RATE_LIMIT_ERROR: &str = "🚀 You're using Orbit like a pro! You've hit your free usage limit.\n\nUpgrade to Orbit Pro for unlimited AI conversations, faster responses, and premium features.\n\nTry again in a few minutes or upgrade now at orbit.app/pro";
+const API_PARSE_ERROR_PREFIX: &str = "API response parsing error: ";
+const AGENT_BUILD_ERROR_PREFIX: &str = "Failed to build agent: ";
+const AGENT_INVOCATION_ERROR_PREFIX: &str = "Agent invocation failed: ";
+const AGENT_EXECUTION_ERROR_PREFIX: &str = "Agent execution failed: ";
+
+const FALLBACK_MODELS: &[&str] = &[
+    GEMINI_FLASH_2_FREE,
+    DEEPSEEK_R1,
+    KIMI_K2,
+    MISTRAL_SMALL_3DOT2_24B_FREE,
+    QWEN2DOT5_VL_72B_FREE,
+    GEMMA_3_27B_IT_FREE,
+    KIMI_VL_A3B_THINKING_FREE,
+];
 
 pub struct LangChainChatBot {
     agent_executor: AgentExecutor<OpenAiToolAgent>,
@@ -23,7 +41,7 @@ pub struct LangChainChatBot {
 }
 
 impl LangChainChatBot {
-    pub fn new<R: tauri::Runtime>(app_handle: AppHandle<R>) -> Result<Self> {
+    fn create_llm_with_model(model: &str) -> Result<OpenAI<OpenAIConfig>> {
         let key = env::var("OPENROUTER_API_KEY")
             .map_err(|e| anyhow!("OPENROUTER_API_KEY environment variable not found. Error: {}. Please ensure it's set and exported in your shell.", e))?;
 
@@ -33,7 +51,13 @@ impl LangChainChatBot {
                     .with_api_base(OPENROUTER_BASE_URL)
                     .with_api_key(key),
             )
-            .with_model(GEMINI_FLASH_2_FREE);
+            .with_model(model);
+
+        Ok(llm)
+    }
+
+    pub fn new<R: tauri::Runtime>(app_handle: AppHandle<R>) -> Result<Self> {
+        let llm = Self::create_llm_with_model(GEMINI_FLASH_2_FREE)?;
 
         let memory = SimpleMemory::new();
         let shared_memory = Arc::new(tokio::sync::Mutex::new(memory));
@@ -43,7 +67,7 @@ impl LangChainChatBot {
             .tools(&[Arc::new(screenshot_tool)])
             .options(ChainCallOptions::new().with_max_tokens(2000))
             .build(llm.clone())
-            .map_err(|e| anyhow!("Failed to build agent: {:?}", e))?;
+            .map_err(|e| anyhow!("{}{:?}", AGENT_BUILD_ERROR_PREFIX, e))?;
 
         let agent_executor = AgentExecutor::from_agent(agent).with_memory(shared_memory.clone());
 
@@ -52,7 +76,7 @@ impl LangChainChatBot {
             .tools(&[Arc::new(ScreenshotTool::new(app_handle))])
             .options(ChainCallOptions::new().with_max_tokens(2000))
             .build(llm.clone())
-            .map_err(|e| anyhow!("Failed to build streaming agent: {:?}", e))?;
+            .map_err(|e| anyhow!("{}streaming agent: {:?}", AGENT_BUILD_ERROR_PREFIX, e))?;
 
         let streaming_executor =
             AgentExecutor::from_agent(streaming_agent).with_memory(shared_memory);
@@ -65,16 +89,7 @@ impl LangChainChatBot {
 
     #[cfg(test)]
     pub fn new_for_test() -> Result<Self> {
-        let key = env::var("OPENROUTER_API_KEY")
-            .map_err(|e| anyhow!("OPENROUTER_API_KEY environment variable not found. Error: {}. Please ensure it's set and exported in your shell.", e))?;
-
-        let llm = OpenAI::default()
-            .with_config(
-                OpenAIConfig::new()
-                    .with_api_base(OPENROUTER_BASE_URL)
-                    .with_api_key(key),
-            )
-            .with_model(GEMINI_FLASH_2_FREE);
+        let llm = Self::create_llm_with_model(GEMINI_FLASH_2_FREE)?;
 
         let memory = SimpleMemory::new();
         let shared_memory = Arc::new(tokio::sync::Mutex::new(memory));
@@ -84,7 +99,7 @@ impl LangChainChatBot {
             .tools(&[])
             .options(ChainCallOptions::new().with_max_tokens(2000))
             .build(llm.clone())
-            .map_err(|e| anyhow!("Failed to build agent: {:?}", e))?;
+            .map_err(|e| anyhow!("{}{:?}", AGENT_BUILD_ERROR_PREFIX, e))?;
 
         let agent_executor = AgentExecutor::from_agent(agent).with_memory(shared_memory.clone());
 
@@ -92,9 +107,10 @@ impl LangChainChatBot {
             .tools(&[])
             .options(ChainCallOptions::new().with_max_tokens(2000))
             .build(llm.clone())
-            .map_err(|e| anyhow!("Failed to build streaming agent: {:?}", e))?;
-        
-        let streaming_executor = AgentExecutor::from_agent(streaming_agent).with_memory(shared_memory);
+            .map_err(|e| anyhow!("{}streaming agent: {:?}", AGENT_BUILD_ERROR_PREFIX, e))?;
+
+        let streaming_executor =
+            AgentExecutor::from_agent(streaming_agent).with_memory(shared_memory);
 
         Ok(Self {
             agent_executor,
@@ -104,23 +120,53 @@ impl LangChainChatBot {
 
     pub async fn ask_orbit(&self, question: &str) -> Result<String> {
         let input_with_system_prompt = format!("{}\n\nUser: {}", ORBIT_SYSTEM_PROMPT, question);
-        let input_variables = prompt_args! {
-            "input" => input_with_system_prompt
-        };
 
-        self.agent_executor
-            .invoke(input_variables)
-            .await
-            .map_err(|e| {
-                let error_str = format!("{:?}", e);
-                if error_str.contains("429") || error_str.contains("failed to deserialize api response: invalid type: integer `429`") {
-                    anyhow!("🚀 You're using Orbit like a pro! You've hit your free usage limit.\n\nUpgrade to Orbit Pro for unlimited AI conversations, faster responses, and premium features.\n\nTry again in a few minutes or upgrade now at orbit.app/pro")
-                } else if error_str.contains("deserialize") && error_str.contains("integer") {
-                    anyhow!("API response parsing error: {}", error_str)
-                } else {
-                    anyhow!("Agent invocation failed: {}", error_str)
+        for (i, model) in FALLBACK_MODELS.iter().enumerate() {
+            let llm = Self::create_llm_with_model(model)?;
+            let memory = SimpleMemory::new();
+            let shared_memory = Arc::new(tokio::sync::Mutex::new(memory));
+
+            // Create agent with the current model
+            let agent = OpenAiToolAgentBuilder::new()
+                .tools(&[]) // No tools for simplicity in fallback
+                .options(ChainCallOptions::new().with_max_tokens(2000))
+                .build(llm)
+                .map_err(|e| anyhow!("{}{:?}", AGENT_BUILD_ERROR_PREFIX, e))?;
+
+            let executor = AgentExecutor::from_agent(agent).with_memory(shared_memory);
+
+            let input_variables = prompt_args! {
+                "input" => input_with_system_prompt.clone()
+            };
+
+            match executor.invoke(input_variables).await {
+                Ok(result) => return Ok(result),
+                Err(e) => {
+                    let error_str = format!("{:?}", e);
+                    let is_rate_limited = error_str.contains("429")
+                        || error_str.contains(
+                            "failed to deserialize api response: invalid type: integer `429`",
+                        );
+
+                    if is_rate_limited && i < FALLBACK_MODELS.len() - 1 {
+                        // Rate limited, try next model
+                        continue;
+                    } else {
+                        // Not rate limited or no more models to try
+                        if is_rate_limited {
+                            return Err(anyhow!(RATE_LIMIT_ERROR));
+                        } else if error_str.contains("deserialize") && error_str.contains("integer")
+                        {
+                            return Err(anyhow!("{}{}", API_PARSE_ERROR_PREFIX, error_str));
+                        } else {
+                            return Err(anyhow!("{}{}", AGENT_INVOCATION_ERROR_PREFIX, error_str));
+                        }
+                    }
                 }
-            })
+            }
+        }
+
+        Err(anyhow!(RATE_LIMIT_ERROR))
     }
 
     pub async fn ask_orbit_stream(&self, question: &str, app_handle: AppHandle) -> Result<()> {
@@ -135,12 +181,15 @@ impl LangChainChatBot {
             .await
             .map_err(|e| {
                 let error_str = format!("{:?}", e);
-                if error_str.contains("429") || error_str.contains("failed to deserialize api response: invalid type: integer `429`") {
-                    anyhow!("🚀 You're using Orbit like a pro! You've hit your free usage limit.\n\nUpgrade to Orbit Pro for unlimited AI conversations, faster responses, and premium features.\n\nTry again in a few minutes or upgrade now at orbit.app/pro")
+                if error_str.contains("429")
+                    || error_str
+                        .contains("failed to deserialize api response: invalid type: integer `429`")
+                {
+                    anyhow!(RATE_LIMIT_ERROR)
                 } else if error_str.contains("deserialize") && error_str.contains("integer") {
-                    anyhow!("API response parsing error: {}", error_str)
+                    anyhow!("{}{}", API_PARSE_ERROR_PREFIX, error_str)
                 } else {
-                    anyhow!("Agent execution failed: {}", error_str)
+                    anyhow!("{}{}", AGENT_EXECUTION_ERROR_PREFIX, error_str)
                 }
             })?;
 
@@ -171,12 +220,15 @@ impl LangChainChatBot {
             .await
             .map_err(|e| {
                 let error_str = format!("{:?}", e);
-                if error_str.contains("429") || error_str.contains("failed to deserialize api response: invalid type: integer `429`") {
-                    anyhow!("🚀 You're using Orbit like a pro! You've hit your free usage limit.\n\nUpgrade to Orbit Pro for unlimited AI conversations, faster responses, and premium features.\n\nTry again in a few minutes or upgrade now at orbit.app/pro")
+                if error_str.contains("429")
+                    || error_str
+                        .contains("failed to deserialize api response: invalid type: integer `429`")
+                {
+                    anyhow!(RATE_LIMIT_ERROR)
                 } else if error_str.contains("deserialize") && error_str.contains("integer") {
-                    anyhow!("API response parsing error: {}", error_str)
+                    anyhow!("{}{}", API_PARSE_ERROR_PREFIX, error_str)
                 } else {
-                    anyhow!("Agent execution failed: {}", error_str)
+                    anyhow!("{}{}", AGENT_EXECUTION_ERROR_PREFIX, error_str)
                 }
             })?;
 
@@ -212,12 +264,15 @@ impl LangChainChatBot {
             .await
             .map_err(|e| {
                 let error_str = format!("{:?}", e);
-                if error_str.contains("429") || error_str.contains("failed to deserialize api response: invalid type: integer `429`") {
-                    anyhow!("🚀 You're using Orbit like a pro! You've hit your free usage limit.\n\nUpgrade to Orbit Pro for unlimited AI conversations, faster responses, and premium features.\n\nTry again in a few minutes or upgrade now at orbit.app/pro")
+                if error_str.contains("429")
+                    || error_str
+                        .contains("failed to deserialize api response: invalid type: integer `429`")
+                {
+                    anyhow!(RATE_LIMIT_ERROR)
                 } else if error_str.contains("deserialize") && error_str.contains("integer") {
-                    anyhow!("API response parsing error: {}", error_str)
+                    anyhow!("{}{}", API_PARSE_ERROR_PREFIX, error_str)
                 } else {
-                    anyhow!("Agent invocation failed: {}", error_str)
+                    anyhow!("{}{}", AGENT_INVOCATION_ERROR_PREFIX, error_str)
                 }
             })
     }

@@ -1,5 +1,5 @@
-use crate::services::chatbot::langchain::LangChainChatBot;
 use crate::{consts::*, Pinned, TrayMenu};
+use orbit_ai::LangChainChatBot;
 use std::{
     ops::Deref,
     sync::{atomic::AtomicBool, Mutex},
@@ -94,13 +94,13 @@ impl Deref for TrayMenu {
 
 fn _set_pin(value: bool, window: &WebviewWindow, pinned: State<Pinned>, menu: State<TrayMenu>) {
     // @d0nutptr cooked here
-    pinned.store(value, std::sync::atomic::Ordering::Relaxed);
+    pinned.0.store(value, std::sync::atomic::Ordering::Relaxed);
 
     // let the client know
     window.emit(TRAY_TOGGLE_PIN, value).unwrap();
 
     // invert the label for the tray
-    if let Some(toggle_pin_menu_item) = menu.lock().ok().and_then(|m| m.get(TRAY_TOGGLE_PIN)) {
+    if let Some(toggle_pin_menu_item) = menu.0.lock().ok().and_then(|m| m.get(TRAY_TOGGLE_PIN)) {
         let enable_or_disable = if value { "Unpin" } else { "Pin" };
         toggle_pin_menu_item
             .as_menuitem_unchecked()
@@ -146,8 +146,12 @@ pub fn update_tray_icon(app: &AppHandle, pinned: bool) {
 
 #[tauri::command]
 pub async fn process_query(query: String, app_handle: AppHandle) -> Result<String, String> {
-    let chatbot = LangChainChatBot::new(app_handle).map_err(|e| e.to_string())?;
-    chatbot.ask_orbit(&query).await.map_err(|e| e.to_string())
+    let orbit_agent = LangChainChatBot::new(app_handle).map_err(|e| e.to_string())?;
+
+    orbit_agent
+        .ask_orbit(&query)
+        .await
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]

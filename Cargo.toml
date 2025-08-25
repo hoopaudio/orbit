@@ -1,0 +1,55 @@
+[workspace]
+members = [
+    "crates/orbit-app",
+    "crates/orbit-core",
+    "crates/orbit-ai",
+    "crates/orbit-connector"
+]
+resolver = "2"
+
+[workspace.dependencies]
+# Shared dependencies across the workspace
+tokio = { version = "1.0", features = ["full"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+anyhow = "1.0"
+thiserror = "2.0"
+log = "0.4"
+
+# Tauri dependencies (for orbit-app)
+tauri = { version = "2.0", features = ["macos-private-api"] }
+tauri-plugin-global-shortcut = "2.0"
+tauri-plugin-single-instance = "2.0"
+tauri-plugin-window-state = "2.0"
+tauri-plugin-shell = "2.0"
+tauri-plugin-os = "2.0"
+tauri-plugin-http = "2.0"
+tauri-plugin-log = { version = "2.0", features = ["colored"] }
+tauri-plugin-websocket = "2.0"
+tauri-plugin-process = "2.0"
+tauri-nspanel = { git = "https://github.com/ahkohd/tauri-nspanel", branch = "v2" }
+
+# AI and ML dependencies
+langchain-rust = "4.6"
+base64 = "0.22"
+reqwest = { version = "0.12", features = ["json"] }
+
+# Audio processing dependencies (for orbit-connector)
+clap = "4.5"
+rosc = "0.10"  # OSC messaging
+cpal = "0.15"  # Cross-platform audio I/O
+
+# Image processing
+image = "0.25"
+
+# Other utilities
+chrono = { version = "0.4", features = ["serde"] }
+uuid = { version = "1.0", features = ["v4", "serde"] }
+dotenv = "0.15"
+
+[profile.release]
+panic = "abort"
+codegen-units = 1
+lto = true
+opt-level = "s"
+strip = true

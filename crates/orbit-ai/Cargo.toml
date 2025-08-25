@@ -1,0 +1,26 @@
+[package]
+name = "orbit-ai"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+orbit-core = { path = "../orbit-core" }
+tokio = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+langchain-rust = { workspace = true }
+base64 = { workspace = true }
+reqwest = { workspace = true }
+image = { workspace = true }
+chrono = { workspace = true }
+dotenv = { workspace = true }
+tauri = { workspace = true }
+xcap = "0.6"
+tesseract = "0.14"
+async-trait = "0.1"
+log = "0.4"
+
+[dev-dependencies]
+tokio-test = "0.4"

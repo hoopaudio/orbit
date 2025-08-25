@@ -237,7 +237,7 @@ leverages hardware acceleration where available.
 which provides comprehensive system permission management for Tauri v2.
 
 ```rust
-// Add to src-tauri/src/lib.rs
+// Add to orbit-app/src/lib.rs
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_macos_permissions::init())

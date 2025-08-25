@@ -1,0 +1,78 @@
+[package]
+name = "orbit"
+version = "0.1.0"
+description = "A Tauri App"
+authors = ["you"]
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+# The `_lib` suffix may seem redundant but it is necessary
+# to make the lib name unique and wouldn't conflict with the bin name.
+# This seems to be only an issue on Windows, see https://github.com/rust-lang/cargo/issues/8519
+name = "orbit_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2.0.5", features = [] }
+
+[dependencies]
+# Workspace crates
+orbit-core = { path = "../orbit-core" }
+orbit-ai = { path = "../orbit-ai" }
+orbit-connector = { path = "../orbit-connector" }
+
+# Workspace dependencies
+tokio = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+chrono = { workspace = true }
+dotenv = { workspace = true }
+
+# Tauri dependencies
+tauri = { workspace = true, features = ["macos-private-api", "devtools", "image-png", "image-ico", "tray-icon"] }
+tauri-plugin-global-shortcut = { workspace = true }
+tauri-plugin-single-instance = { workspace = true }
+tauri-plugin-window-state = { workspace = true }
+tauri-plugin-shell = { workspace = true }
+tauri-plugin-os = { workspace = true }
+tauri-plugin-http = { workspace = true }
+tauri-plugin-log = { workspace = true, features = ["colored"] }
+tauri-plugin-websocket = { workspace = true }
+tauri-plugin-process = { workspace = true }
+tauri-nspanel = { workspace = true }
+
+# macOS specific
+cocoa = "0.26.0"
+objc = "0.2.7"
+
+# Additional dependencies
+log = "0.4"
+futures-util = "0.3"
+secrecy = "0.10"
+async-trait = "0.1"
+tauri-plugin-opener = "2"
+tauri-plugin-fs = "2"
+
+# Monitor and notification utilities
+monitor = { git = "https://github.com/ahkohd/tauri-toolkit", branch = "v2" }
+system-notification = { git = "https://github.com/ahkohd/tauri-toolkit", branch = "v2" }
+tesseract = "0.14"
+base64 = "0.22"
+futures = "0.3.31"
+
+
+[target.'cfg(target_os = "macos")'.dependencies]
+tauri-nspanel = { git = "https://github.com/ahkohd/tauri-nspanel", branch = "v2" }
+monitor = { git = "https://github.com/ahkohd/tauri-toolkit", branch = "v2" }
+system-notification = { git = "https://github.com/ahkohd/tauri-toolkit", branch = "v2" }
+cocoa = "0.26.0"
+objc = "0.2.7"
+objc2 = "0.5.0"
+objc2-app-kit = "0.3.1"
+
+[target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
+tauri-plugin-global-shortcut = "2"

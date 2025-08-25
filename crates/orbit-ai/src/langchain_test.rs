@@ -1,4 +1,4 @@
-use crate::services::chatbot::langchain::LangChainChatBot;
+use crate::langchain::LangChainChatBot;
 use dotenv::dotenv;
 use std::error::Error as StdError;
 use tokio;

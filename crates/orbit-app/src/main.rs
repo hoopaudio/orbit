@@ -5,15 +5,14 @@
 
 mod commands;
 mod consts;
-mod services;
 mod tray;
 mod window;
 
-use crate::consts::{MAIN_WINDOW_NAME, ORBIT_LABEL, SETTINGS_WINDOW_NAME};
-use crate::tray::Tray;
+use consts::{MAIN_WINDOW_NAME, ORBIT_LABEL, SETTINGS_WINDOW_NAME};
+use tray::Tray;
 use commands::*;
 use dotenv::dotenv;
-use services::screenshot::ScreenshotService;
+use orbit_ai::ScreenshotService;
 use std::{
     str::FromStr,
     sync::{atomic::AtomicBool, Mutex},
@@ -26,8 +25,8 @@ use tauri_plugin_window_state::{AppHandleExt, StateFlags};
 use window::WebviewWindowExt;
 
 pub struct Pinned(AtomicBool);
-
 pub struct TrayMenu(Mutex<Menu<Wry>>);
+
 
 fn main() {
     // Load environment variables from .env file
@@ -77,7 +76,7 @@ fn main() {
 
                             panel.show();
                             window.set_focus().unwrap();
-                            
+
                             // Focus the input field after showing the window
                             let _ = window.eval("setTimeout(() => { const input = document.querySelector('textarea'); if (input) input.focus(); }, 50);");
                         }
