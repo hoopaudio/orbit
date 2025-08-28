@@ -148,15 +148,22 @@ impl LangChainChatBot {
                             "failed to deserialize api response: invalid type: integer `429`",
                         );
 
-                    if is_rate_limited && i < FALLBACK_MODELS.len() - 1 {
-                        // Rate limited, try next model
-                        continue;
-                    } else {
-                        // Not rate limited or no more models to try
-                        if is_rate_limited {
+                    log::error!("Model {} failed: {}", model, error_str);
+
+                    if is_rate_limited {
+                        log::warn!("Rate limited on model {}, trying next model", model);
+                        if i < FALLBACK_MODELS.len() - 1 {
+                            // Rate limited and more models available, try next model
+                            continue;
+                        } else {
+                            // Rate limited and no more models to try
+                            log::error!("All models rate limited, no more fallbacks available");
                             return Err(anyhow!(RATE_LIMIT_ERROR));
-                        } else if error_str.contains("deserialize") && error_str.contains("integer")
-                        {
+                        }
+                    } else {
+                        // Not rate limited - return the actual error immediately
+                        log::error!("Non-rate-limit error on model {}: {}", model, error_str);
+                        if error_str.contains("deserialize") && error_str.contains("integer") {
                             return Err(anyhow!("{}{}", API_PARSE_ERROR_PREFIX, error_str));
                         } else {
                             return Err(anyhow!("{}{}", AGENT_INVOCATION_ERROR_PREFIX, error_str));
