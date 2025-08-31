@@ -7,8 +7,11 @@ export const useTextareaResize = () => {
         const textarea = e.target;
         setQuery(textarea.value);
 
-        textarea.style.height = 'auto';
-        textarea.style.height = Math.min(textarea.scrollHeight, 200) + 'px';
+        // Only adjust height if we have a real textarea element with style property
+        if (textarea && textarea.style) {
+            textarea.style.height = 'auto';
+            textarea.style.height = Math.min(textarea.scrollHeight, 200) + 'px';
+        }
     };
 
     return {

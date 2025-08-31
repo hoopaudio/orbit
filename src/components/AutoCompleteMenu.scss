@@ -1,0 +1,58 @@
+@use '../palette';
+@use '../styles/mixins';
+
+.autocomplete-menu {
+  position: absolute;
+  width: 95%;
+  margin: 8px auto;
+  background-color: palette.$onyx;
+  border: 1px solid palette.$outer-space;
+  border-radius: 12px;
+  padding: 8px;
+  z-index: 100;
+  @include mixins.glass-effect(0.8);
+
+  &.bottom {
+    top: 100%;
+    bottom: auto;
+  }
+
+  &.top {
+    bottom: 100%;
+    top: auto;
+  }
+
+  ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  li {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    color: palette.$seasalt;
+    transition: background-color 0.2s ease;
+
+    &:hover,
+    &.selected {
+      background-color: rgba(palette.$seasalt, 0.15);
+    }
+
+    &.selected {
+      background-color: rgba(palette.$seasalt, 0.2);
+      border: 1px solid rgba(palette.$seasalt, 0.3);
+    }
+  }
+
+  .command-name {
+    font-weight: 600;
+  }
+
+  .command-description {
+    color: palette.$french-gray-2;
+  }
+}

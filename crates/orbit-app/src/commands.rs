@@ -174,3 +174,151 @@ pub fn resize_window(window: WebviewWindow, width: f64, height: f64) -> Result<(
 
     Ok(())
 }
+
+#[tauri::command]
+pub fn resize_window_for_producer_mode(window: WebviewWindow) -> Result<(), String> {
+    #[cfg(target_os = "macos")]
+    {
+        use cocoa::base::{id, nil};
+        use cocoa::foundation::{NSRect};
+        use objc::{class, msg_send, sel, sel_impl};
+        
+        unsafe {
+            let ns_window = window.ns_window().map_err(|e| e.to_string())? as id;
+            
+            // Get the screen the window is on
+            let screen: id = msg_send![ns_window, screen];
+            if screen == nil {
+                return Err("No screen found".to_string());
+            }
+            
+            // Get the visible frame (area not occupied by dock/menu bar)
+            let visible_frame: NSRect = msg_send![screen, visibleFrame];
+            
+            // Set the window frame to match the visible area
+            // We need to position it at the top of the visible area
+            let new_frame = NSRect {
+                origin: cocoa::foundation::NSPoint {
+                    x: visible_frame.origin.x + visible_frame.size.width - 550.0, // Align to right
+                    y: visible_frame.origin.y, // Bottom of visible area
+                },
+                size: cocoa::foundation::NSSize {
+                    width: 450.0,
+                    height: visible_frame.size.height,
+                },
+            };
+            
+            // Set the frame without animation for instant resize
+            let _: () = msg_send![ns_window, setFrame:new_frame display:true animate:false];
+            
+            println!("Set producer mode window to height: {}", visible_frame.size.height);
+        }
+    }
+    
+    #[cfg(not(target_os = "macos"))]
+    {
+        // Fallback for other platforms
+        window
+            .set_size(tauri::LogicalSize::new(550.0, 800.0))
+            .map_err(|e| e.to_string())?;
+    }
+    
+    Ok(())
+}
+
+#[tauri::command]
+pub fn get_available_screen_dimensions(window: WebviewWindow) -> Result<(f64, f64), String> {
+    // Get the monitor that the window is currently on
+    let current_monitor = window
+        .current_monitor()
+        .map_err(|e| e.to_string())?
+        .ok_or_else(|| "No monitor found".to_string())?;
+    
+    // Get the monitor's size (this is the full screen size)
+    let monitor_size = current_monitor.size();
+    
+    // On macOS, we need to account for the menu bar and dock
+    // The available work area is the screen minus system UI elements
+    #[cfg(target_os = "macos")]
+    {
+        use cocoa::base::{id, nil};
+        use cocoa::foundation::{NSArray, NSRect, NSPoint};
+        use objc::{class, msg_send, sel, sel_impl};
+        
+        unsafe {
+            // Get the window's current position to find which screen it's on
+            let ns_window = window.ns_window().map_err(|e| e.to_string())? as id;
+            let window_frame: NSRect = msg_send![ns_window, frame];
+            
+            // Get all screens and find the one containing our window
+            let screens: id = msg_send![class!(NSScreen), screens];
+            let screen_count: usize = msg_send![screens, count];
+            
+            let mut target_screen: id = nil;
+            for i in 0..screen_count {
+                let screen: id = msg_send![screens, objectAtIndex:i];
+                let screen_frame: NSRect = msg_send![screen, frame];
+                
+                // Check if window center is within this screen
+                let window_center_x = window_frame.origin.x + window_frame.size.width / 2.0;
+                let window_center_y = window_frame.origin.y + window_frame.size.height / 2.0;
+                
+                if window_center_x >= screen_frame.origin.x 
+                    && window_center_x <= screen_frame.origin.x + screen_frame.size.width
+                    && window_center_y >= screen_frame.origin.y 
+                    && window_center_y <= screen_frame.origin.y + screen_frame.size.height {
+                    target_screen = screen;
+                    break;
+                }
+            }
+            
+            // If we didn't find the screen, use the main screen
+            if target_screen == nil {
+                target_screen = msg_send![screens, objectAtIndex:0];
+            }
+            
+            // Get the visible frame (excludes menu bar and dock) and full frame
+            let visible_frame: NSRect = msg_send![target_screen, visibleFrame];
+            let full_frame: NSRect = msg_send![target_screen, frame];
+            
+            // Log for debugging
+            println!("Full frame height: {}", full_frame.size.height);
+            println!("Visible frame height: {}", visible_frame.size.height);
+            println!("Difference (menu + dock): {}", full_frame.size.height - visible_frame.size.height);
+            
+            // Return the visible frame dimensions
+            Ok((visible_frame.size.width, visible_frame.size.height))
+        }
+    }
+    
+    #[cfg(not(target_os = "macos"))]
+    {
+        // For other platforms, return the full monitor size
+        // You may need to adjust this based on platform-specific requirements
+        Ok((monitor_size.width as f64, monitor_size.height as f64))
+    }
+}
+
+#[tauri::command]
+pub fn get_visible_frame(window: WebviewWindow) -> Result<(f64, f64, f64, f64), String> {
+    #[cfg(target_os = "macos")]
+    {
+        use cocoa::base::{id, nil};
+        use cocoa::foundation::{NSRect};
+        use objc::{class, msg_send, sel, sel_impl};
+        
+        unsafe {
+            let ns_window = window.ns_window().map_err(|e| e.to_string())? as id;
+            let screen: id = msg_send![ns_window, screen];
+            if screen == nil {
+                return Err("No screen found".to_string());
+            }
+            let visible_frame: NSRect = msg_send![screen, visibleFrame];
+            Ok((visible_frame.origin.x, visible_frame.origin.y, visible_frame.size.width, visible_frame.size.height))
+        }
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        Ok((0.0, 0.0, 0.0, 0.0))
+    }
+}

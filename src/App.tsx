@@ -1,56 +1,109 @@
-import React, {useRef} from "react";
-import {OrbitLogo} from "./components/OrbitLogo";
-import {InputField} from "./components/InputField";
-import {ResponseDisplay} from "./components/ResponseDisplay";
+import React, {useRef, useState, useEffect} from "react";
 import {useWindowResize} from "./hooks/useWindowResize";
 import {useWindowEvents} from "./hooks/useWindowEvents";
 import {useStreamingQuery} from "./hooks/useStreamingQuery";
 import {useTextareaResize} from "./hooks/useTextareaResize";
+import {StandardMode} from "./components/StandardMode";
+import {ProducerMode} from "./components/ProducerMode";
+import {Command} from "./components/AutoCompleteMenu";
+import {invoke} from "@tauri-apps/api/core";
 import "./App.scss";
 
 function App() {
+    const [isProducerMode, setIsProducerMode] = useState(false);
     const inputRef = useRef<HTMLTextAreaElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
 
     const {query, handleTextareaInput, setQuery} = useTextareaResize();
-    const {response, isLoading, processQuery, setResponse, setIsLoading} = useStreamingQuery();
+    const {history, isLoading, processQuery, setHistory, setIsLoading} = useStreamingQuery();
 
-    useWindowResize(containerRef, response, isLoading);
-    useWindowEvents(inputRef, setQuery, setResponse, setIsLoading);
+    const commands: Command[] = [
+        {name: "/producer", description: "Toggle Producer Mode"},
+        {name: "/standard", description: "Toggle Standard Mode"},
+    ];
+
+    // Only use dynamic resize in standard mode
+    useWindowResize(containerRef, history.map(h => h.text).join('\n'), isLoading, isProducerMode);
+    useWindowEvents(inputRef, setQuery, () => setHistory([]), setIsLoading);
+
+    // Handle producer mode window resizing
+    useEffect(() => {
+        const handleResize = async () => {
+            if (isProducerMode) {
+                try {
+                    // Use the specialized command that handles all the native positioning
+                    await invoke("resize_window_for_producer_mode");
+                } catch (error) {
+                    console.error("Failed to resize for producer mode:", error);
+                    // Fallback to a reasonable default
+                    invoke("resize_window", {
+                        width: 550,
+                        height: window.screen.availHeight - 100
+                    }).catch(console.error);
+                }
+            } else {
+                // When switching back to standard mode, trigger a resize based on content
+                // Small delay to ensure DOM has updated
+                setTimeout(() => {
+                    if (containerRef.current) {
+                        const containerHeight = containerRef.current.scrollHeight;
+                        const windowHeight = Math.min(Math.max(containerHeight + 60, 185), 1050);
+                        invoke("resize_window", {
+                            width: 550,
+                            height: windowHeight
+                        }).catch(console.error);
+                    }
+                }, 100);
+            }
+        };
+        
+        handleResize();
+    }, [isProducerMode]);
+
+    const handleProcessQuery = (queryString: string) => {
+        if (queryString.trim() === "/producer") {
+            setIsProducerMode(true);  // Set to true, don't toggle
+            setQuery("");
+            return;
+        }
+        if (queryString.trim() === "/standard") {
+            setIsProducerMode(false);
+            setQuery("");
+            return;
+        }
+        processQuery(queryString);
+    };
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        processQuery(query);
+        handleProcessQuery(query);
     };
 
+    if (isProducerMode) {
+        return <ProducerMode
+            inputRef={inputRef}
+            query={query}
+            history={history}
+            isLoading={isLoading}
+            handleTextareaInput={handleTextareaInput}
+            handleSubmit={handleSubmit}
+            handleProcessQuery={handleProcessQuery}
+            commands={commands}
+        />;
+    }
+
     return (
-        <div
-            className="orbit-container"
-            data-tauri-drag-region
-            ref={containerRef}
-            tabIndex={0}
-        >
-            <div className="orbit-overlay">
-                <form className="orbit-form" onSubmit={handleSubmit} data-tauri-drag-region>
-                    <div className="input-wrapper">
-                        <div className="warm-background"></div>
-                        <div className="glass-layer"></div>
-
-                        <div className="input-content">
-                            <OrbitLogo/>
-                            <InputField
-                                ref={inputRef}
-                                value={query}
-                                onChange={handleTextareaInput}
-                                onSubmit={handleSubmit}
-                            />
-                        </div>
-                    </div>
-                </form>
-
-                <ResponseDisplay response={response} isLoading={isLoading}/>
-            </div>
-        </div>
+        <StandardMode
+            containerRef={containerRef}
+            inputRef={inputRef}
+            query={query}
+            history={history}
+            isLoading={isLoading}
+            handleTextareaInput={handleTextareaInput}
+            handleSubmit={handleSubmit}
+            handleProcessQuery={handleProcessQuery}
+            commands={commands}
+        />
     );
 }
 

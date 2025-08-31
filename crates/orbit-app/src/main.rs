@@ -106,6 +106,19 @@ fn main() {
             window.set_decorations(false);
             window.set_shadow(false);
 
+            #[cfg(target_os = "macos")]
+            unsafe {
+                use cocoa::appkit::NSWindow;
+                use objc::{msg_send, sel, sel_impl};
+
+                #[allow(non_upper_case_globals)]
+                const NSFocusRingTypeNone: i32 = 1;
+
+                let ns_window = window.ns_window().unwrap() as cocoa::base::id;
+                let ns_view = ns_window.contentView();
+                let _: () = msg_send![ns_view, setFocusRingType:NSFocusRingTypeNone];
+            }
+
             // Convert the window to a spotlight panel
             let panel = window.to_orbit_panel()?;
 
@@ -130,7 +143,9 @@ fn main() {
             process_query_stream,
             resize_window,
             show,
-            hide
+            hide,
+            get_visible_frame,
+            resize_window_for_producer_mode
         ]);
 
     app.build(tauri::generate_context!())

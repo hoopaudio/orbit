@@ -2,18 +2,28 @@ import {useState} from 'react';
 import {invoke} from "@tauri-apps/api/core";
 import {listen} from "@tauri-apps/api/event";
 
+export interface Message {
+    speaker: 'user' | 'ai';
+    text: string;
+}
+
 export const useStreamingQuery = () => {
-    const [response, setResponse] = useState("");
+    const [history, setHistory] = useState<Message[]>([]);
     const [isLoading, setIsLoading] = useState(false);
 
     const processQuery = async (query: string) => {
         if (!query.trim()) return;
 
         setIsLoading(true);
-        setResponse("");
+        const newUserMessage: Message = { speaker: 'user', text: query };
+        setHistory(prev => [...prev, newUserMessage, { speaker: 'ai', text: '' }]);
 
         const unlistenChunk = await listen<string>("stream_chunk", (event) => {
-            setResponse(prev => prev + event.payload);
+            setHistory(prev => {
+                const lastMessage = prev[prev.length - 1];
+                const updatedLastMessage = { ...lastMessage, text: lastMessage.text + event.payload };
+                return [...prev.slice(0, -1), updatedLastMessage];
+            });
             setIsLoading(false);
         });
 
@@ -25,7 +35,11 @@ export const useStreamingQuery = () => {
         });
 
         const unlistenError = await listen<string>("stream_error", (event) => {
-            setResponse(event.payload);
+            setHistory(prev => {
+                const lastMessage = prev[prev.length - 1];
+                const updatedLastMessage = { ...lastMessage, text: event.payload };
+                return [...prev.slice(0, -1), updatedLastMessage];
+            });
             setIsLoading(false);
             unlistenChunk();
             unlistenDone();
@@ -35,7 +49,11 @@ export const useStreamingQuery = () => {
         try {
             await invoke("process_query_stream", {query});
         } catch (error) {
-            setResponse(error + "");
+            setHistory(prev => {
+                const lastMessage = prev[prev.length - 1];
+                const updatedLastMessage = { ...lastMessage, text: error + "" };
+                return [...prev.slice(0, -1), updatedLastMessage];
+            });
             setIsLoading(false);
             unlistenChunk();
             unlistenDone();
@@ -44,8 +62,8 @@ export const useStreamingQuery = () => {
     };
 
     return {
-        response,
-        setResponse,
+        history,
+        setHistory,
         isLoading,
         setIsLoading,
         processQuery
