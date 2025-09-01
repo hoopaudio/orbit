@@ -199,7 +199,7 @@ pub fn resize_window_for_producer_mode(window: WebviewWindow) -> Result<(), Stri
             // We need to position it at the top of the visible area
             let new_frame = NSRect {
                 origin: cocoa::foundation::NSPoint {
-                    x: visible_frame.origin.x + visible_frame.size.width - 550.0, // Align to right
+                    x: visible_frame.origin.x + visible_frame.size.width - 450.0, // Align flush to right edge
                     y: visible_frame.origin.y, // Bottom of visible area
                 },
                 size: cocoa::foundation::NSSize {
