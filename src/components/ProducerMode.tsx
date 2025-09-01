@@ -105,7 +105,7 @@ export const ProducerMode: React.FC<ProducerModeProps> = ({
         <div className="producer-mode-container">
             <div className="producer-mode-content">
                 <div className="conversation-section">
-                    <ResponseDisplay history={history} isLoading={isLoading}/>
+                    <ResponseDisplay history={history} isLoading={isLoading} isProducerMode={true}/>
                 </div>
                 <div className="context-section">
                     <button className="add-channel-btn">@</button>

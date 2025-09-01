@@ -142,6 +142,7 @@ fn main() {
             process_query,
             process_query_stream,
             resize_window,
+            resize_and_reposition_for_standard_mode,
             show,
             hide,
             get_visible_frame,

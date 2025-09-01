@@ -42,13 +42,13 @@ function App() {
                     }).catch(console.error);
                 }
             } else {
-                // When switching back to standard mode, trigger a resize based on content
+                // When switching back to standard mode, resize and reposition the window
                 // Small delay to ensure DOM has updated
                 setTimeout(() => {
                     if (containerRef.current) {
                         const containerHeight = containerRef.current.scrollHeight;
                         const windowHeight = Math.min(Math.max(containerHeight + 60, 185), 1050);
-                        invoke("resize_window", {
+                        invoke("resize_and_reposition_for_standard_mode", {
                             width: 550,
                             height: windowHeight
                         }).catch(console.error);

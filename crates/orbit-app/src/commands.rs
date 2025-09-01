@@ -176,6 +176,54 @@ pub fn resize_window(window: WebviewWindow, width: f64, height: f64) -> Result<(
 }
 
 #[tauri::command]
+pub fn resize_and_reposition_for_standard_mode(window: WebviewWindow, width: f64, height: f64) -> Result<(), String> {
+    use tauri::LogicalSize;
+    
+    // First resize the window
+    window
+        .set_size(LogicalSize::new(width, height))
+        .map_err(|e| e.to_string())?;
+    
+    // Then reposition it to top_right with some padding from the top
+    #[cfg(target_os = "macos")]
+    {
+        use cocoa::base::{id, nil};
+        use cocoa::foundation::{NSRect, NSPoint, NSSize};
+        use objc::{msg_send, sel, sel_impl};
+        
+        unsafe {
+            let ns_window = window.ns_window().map_err(|e| e.to_string())? as id;
+            
+            // Get the screen the window is on
+            let screen: id = msg_send![ns_window, screen];
+            if screen == nil {
+                return Err("No screen found".to_string());
+            }
+            
+            // Get the visible frame (area not occupied by dock/menu bar)
+            let visible_frame: NSRect = msg_send![screen, visibleFrame];
+            
+            // Position at top-right, exact same calculation as window.position("top_right")
+            let new_frame = NSRect {
+                origin: NSPoint {
+                    x: visible_frame.origin.x + visible_frame.size.width - width,
+                    y: visible_frame.origin.y + visible_frame.size.height - height,
+                },
+                size: NSSize {
+                    width,
+                    height,
+                },
+            };
+            
+            // Set the frame without animation
+            let _: () = msg_send![ns_window, setFrame:new_frame display:true animate:false];
+        }
+    }
+    
+    Ok(())
+}
+
+#[tauri::command]
 pub fn resize_window_for_producer_mode(window: WebviewWindow) -> Result<(), String> {
     #[cfg(target_os = "macos")]
     {
