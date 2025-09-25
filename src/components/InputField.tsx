@@ -1,10 +1,9 @@
-import React, {forwardRef, useEffect} from 'react';
-import {Command} from './AutoCompleteMenu';
+import React, { forwardRef, useEffect } from 'react';
+import { Command } from './AutoCompleteMenu';
 
 interface InputFieldProps {
     value: string;
     onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
-    onSubmit: (e: React.FormEvent) => void;
     placeholder?: string;
     commands?: Command[];
     onSuggestionsChange: (suggestions: Command[]) => void;
@@ -17,7 +16,6 @@ export const InputField = forwardRef<HTMLTextAreaElement, InputFieldProps>(
         {
             value,
             onChange,
-            onSubmit,
             placeholder = "Type to Orbit",
             commands = [],
             onSuggestionsChange,

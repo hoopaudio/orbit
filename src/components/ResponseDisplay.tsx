@@ -1,4 +1,4 @@
-import React, {useRef, useEffect} from 'react';
+import React, { useRef, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { LoadingAnimation } from './LoadingAnimation';
 import { Message } from '../hooks/useStreamingQuery';
@@ -10,7 +10,7 @@ interface ResponseDisplayProps {
     isProducerMode?: boolean;
 }
 
-export const ResponseDisplay: React.FC<ResponseDisplayProps> = ({history, isLoading, isProducerMode = false}) => {
+export const ResponseDisplay: React.FC<ResponseDisplayProps> = ({ history, isLoading, isProducerMode = false }) => {
     const scrollRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
