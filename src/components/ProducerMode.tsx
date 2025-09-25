@@ -124,7 +124,6 @@ export const ProducerMode: React.FC<ProducerModeProps> = ({
                                     ref={inputRef}
                                     value={query}
                                     onChange={handleTextareaInput}
-                                    onSubmit={handleSubmit}
                                     commands={commands}
                                     onSuggestionsChange={setSuggestions}
                                     onMenuVisibilityChange={setIsMenuVisible}
