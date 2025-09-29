@@ -26,6 +26,20 @@ function App() {
     useWindowResize(containerRef, history.map(h => h.text).join('\n'), isLoading, isProducerMode);
     useWindowEvents(inputRef, setQuery, () => setHistory([]), setIsLoading);
 
+    // Add keyboard shortcut to clear conversation (Cmd+K)
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.metaKey && e.key === 'k') {
+                e.preventDefault();
+                setHistory([]);
+                setQuery("");
+            }
+        };
+
+        document.addEventListener('keydown', handleKeyDown);
+        return () => document.removeEventListener('keydown', handleKeyDown);
+    }, []);
+
     // Handle producer mode window resizing
     useEffect(() => {
         const handleResize = async () => {

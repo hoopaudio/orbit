@@ -3,7 +3,18 @@ name = "orbit-ai"
 version = "0.1.0"
 edition = "2021"
 
+[lib]
+name = "orbit_ai"
+# Only build as cdylib when building the Python extension
+crate-type = ["cdylib", "rlib"]
+
+[features]
+default = []
+python = ["pyo3/extension-module", "pyo3/abi3-py39", "dep:pyo3-asyncio"]
+
 [dependencies]
+pyo3 = { version = "0.20", features = ["auto-initialize"] }
+pyo3-asyncio = { version = "0.20", features = ["tokio-runtime"], optional = true }
 orbit-core = { path = "../orbit-core" }
 tokio = { workspace = true }
 serde = { workspace = true }

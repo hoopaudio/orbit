@@ -1,0 +1,29 @@
+[build-system]
+requires = ["maturin>=1.7,<2.0"]
+build-backend = "maturin"
+
+[project]
+name = "orbit-ai"
+version = "0.1.0"
+description = "Python bindings for Orbit AI with LangChain integration"
+authors = [{name = "Orbit Team"}]
+readme = "README.md"
+requires-python = ">=3.9"
+classifiers = [
+    "Programming Language :: Rust",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+dependencies = [
+    "langchain>=0.2.0",
+    "langchain-community>=0.2.0",
+    "openai>=1.0.0",
+]
+
+[tool.maturin]
+features = ["python"]
+python-source = "python"
+module-name = "orbit_ai.orbit_ai"

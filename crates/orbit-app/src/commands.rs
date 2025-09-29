@@ -1,5 +1,5 @@
 use crate::{consts::*, Pinned, TrayMenu};
-use orbit_ai::LangChainChatBot;
+use orbit_ai::{LangChainChatBot, PythonBotWrapper};
 use std::{
     ops::Deref,
     sync::{atomic::AtomicBool, Mutex},
@@ -161,7 +161,42 @@ pub async fn process_query_stream(query: String, app_handle: AppHandle) -> Resul
     chatbot
         .ask_orbit_stream(&query, app_handle)
         .await
-        .map_err(|e| e.to_string())
+        .map_err(|e: anyhow::Error| e.to_string())
+}
+
+#[tauri::command]
+pub async fn process_query_python(query: String) -> Result<String, String> {
+    println!("process_query_python called with query: {}", query);
+
+    // First, let's just return a hardcoded response to verify the command works
+    return Ok(format!("Hardcoded response for testing. You said: {}", query));
+
+    // The Python bot code below - we'll enable this once we confirm the command is being called
+    /*
+    let python_bot = match PythonBotWrapper::new() {
+        Ok(bot) => {
+            println!("Python bot created successfully");
+            bot
+        },
+        Err(e) => {
+            let error_msg = format!("Failed to create Python bot: {}", e);
+            println!("{}", error_msg);
+            return Err(error_msg);
+        }
+    };
+
+    match python_bot.ask_orbit(&query).await {
+        Ok(response) => {
+            println!("Got response from Python bot: {}", response);
+            Ok(response)
+        },
+        Err(e) => {
+            let error_msg = format!("Failed to get response from Python bot: {}", e);
+            println!("{}", error_msg);
+            Err(error_msg)
+        }
+    }
+    */
 }
 
 #[tauri::command]

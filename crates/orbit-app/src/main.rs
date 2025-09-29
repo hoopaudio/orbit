@@ -141,6 +141,7 @@ fn main() {
             open_settings,
             process_query,
             process_query_stream,
+            process_query_python,
             resize_window,
             resize_and_reposition_for_standard_mode,
             show,

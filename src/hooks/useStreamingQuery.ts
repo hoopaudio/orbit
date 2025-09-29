@@ -18,46 +18,27 @@ export const useStreamingQuery = () => {
         const newUserMessage: Message = { speaker: 'user', text: query };
         setHistory(prev => [...prev, newUserMessage, { speaker: 'ai', text: '' }]);
 
-        const unlistenChunk = await listen<string>("stream_chunk", (event) => {
-            setHistory(prev => {
-                const lastMessage = prev[prev.length - 1];
-                const updatedLastMessage = { ...lastMessage, text: lastMessage.text + event.payload };
-                return [...prev.slice(0, -1), updatedLastMessage];
-            });
-            setIsLoading(false);
-        });
-
-        const unlistenDone = await listen("stream_done", () => {
-            setIsLoading(false);
-            unlistenChunk();
-            unlistenDone();
-            unlistenError();
-        });
-
-        const unlistenError = await listen<string>("stream_error", (event) => {
-            setHistory(prev => {
-                const lastMessage = prev[prev.length - 1];
-                const updatedLastMessage = { ...lastMessage, text: event.payload };
-                return [...prev.slice(0, -1), updatedLastMessage];
-            });
-            setIsLoading(false);
-            unlistenChunk();
-            unlistenDone();
-            unlistenError();
-        });
-
         try {
-            await invoke("process_query_stream", {query});
-        } catch (error) {
+            // Use Python implementation (non-streaming)
+            console.log("Calling process_query_python with query:", query);
+            const response = await invoke<string>("process_query_python", {query});
+            console.log("Got response:", response);
+
+            // Update the last AI message with the full response
             setHistory(prev => {
                 const lastMessage = prev[prev.length - 1];
-                const updatedLastMessage = { ...lastMessage, text: error + "" };
+                const updatedLastMessage = { ...lastMessage, text: response };
                 return [...prev.slice(0, -1), updatedLastMessage];
             });
+        } catch (error) {
+            console.error("Error calling process_query_python:", error);
+            setHistory(prev => {
+                const lastMessage = prev[prev.length - 1];
+                const updatedLastMessage = { ...lastMessage, text: String(error) };
+                return [...prev.slice(0, -1), updatedLastMessage];
+            });
+        } finally {
             setIsLoading(false);
-            unlistenChunk();
-            unlistenDone();
-            unlistenError();
         }
     };
 

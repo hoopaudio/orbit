@@ -1,10 +1,10 @@
-import React, {useState, useEffect} from 'react';
+import React, { useState, useEffect } from 'react';
 import './ProducerMode.scss';
-import {OrbitLogo} from './OrbitLogo';
-import {InputField} from './InputField';
-import {ResponseDisplay} from './ResponseDisplay';
-import {Message} from '../hooks/useStreamingQuery';
-import {AutoCompleteMenu, Command} from './AutoCompleteMenu';
+import { OrbitLogo } from './OrbitLogo';
+import { InputField } from './InputField';
+import { ResponseDisplay } from './ResponseDisplay';
+import { Message } from '../hooks/useStreamingQuery';
+import { AutoCompleteMenu, Command } from './AutoCompleteMenu';
 
 interface ProducerModeProps {
     inputRef: React.RefObject<HTMLTextAreaElement>;
@@ -17,7 +17,7 @@ interface ProducerModeProps {
     commands: Command[];
 }
 
-const ChannelPill = ({name}: { name: string }) => (
+const ChannelPill = ({ name }: { name: string }) => (
     <div className="channel-pill">
         <span>{name}</span>
         <button className="remove-channel-btn">&times;</button>
@@ -25,15 +25,15 @@ const ChannelPill = ({name}: { name: string }) => (
 );
 
 export const ProducerMode: React.FC<ProducerModeProps> = ({
-                                                              inputRef,
-                                                              query,
-                                                              history,
-                                                              isLoading,
-                                                              handleTextareaInput,
-                                                              handleSubmit,
-                                                              handleProcessQuery,
-                                                              commands,
-                                                          }) => {
+    inputRef,
+    query,
+    history,
+    isLoading,
+    handleTextareaInput,
+    handleSubmit,
+    handleProcessQuery,
+    commands,
+}) => {
     const [suggestions, setSuggestions] = useState<Command[]>([]);
     const [isMenuVisible, setIsMenuVisible] = useState(false);
     const [selectedIndex, setSelectedIndex] = useState(-1);
@@ -52,11 +52,11 @@ export const ProducerMode: React.FC<ProducerModeProps> = ({
     const handleSelectCommand = (commandName: string, shouldSubmit: boolean = false) => {
         // Update the input field
         const event = {
-            target: {value: commandName},
+            target: { value: commandName },
         } as React.ChangeEvent<HTMLTextAreaElement>;
         handleTextareaInput(event);
         setIsMenuVisible(false);
-        
+
         if (shouldSubmit) {
             // Execute the command IMMEDIATELY, don't wait
             handleProcessQuery(commandName);
@@ -72,7 +72,7 @@ export const ProducerMode: React.FC<ProducerModeProps> = ({
             } else if (e.key === 'ArrowUp') {
                 e.preventDefault();
                 // Go to last item if at beginning or nothing selected
-                setSelectedIndex(prev => 
+                setSelectedIndex(prev =>
                     prev <= 0 ? suggestions.length - 1 : prev - 1
                 );
             } else if (e.key === 'Enter' && !e.shiftKey) {
@@ -105,12 +105,12 @@ export const ProducerMode: React.FC<ProducerModeProps> = ({
         <div className="producer-mode-container">
             <div className="producer-mode-content">
                 <div className="conversation-section">
-                    <ResponseDisplay history={history} isLoading={isLoading} isProducerMode={true}/>
+                    <ResponseDisplay history={history} isLoading={isLoading} isProducerMode={true} />
                 </div>
                 <div className="context-section">
                     <button className="add-channel-btn">@</button>
                     <div className="channels-list">
-                        {channels.map(channel => <ChannelPill key={channel} name={channel}/>)}
+                        {channels.map(channel => <ChannelPill key={channel} name={channel} />)}
                     </div>
                 </div>
                 <div className="producer-prompt-section">
@@ -119,7 +119,7 @@ export const ProducerMode: React.FC<ProducerModeProps> = ({
                             <div className="warm-background"></div>
                             <div className="glass-layer"></div>
                             <div className="input-content">
-                                <OrbitLogo/>
+                                <OrbitLogo />
                                 <InputField
                                     ref={inputRef}
                                     value={query}

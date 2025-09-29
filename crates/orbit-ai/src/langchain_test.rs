@@ -4,6 +4,7 @@ use std::error::Error as StdError;
 use tokio;
 
 #[tokio::test]
+#[ignore = "Requires API quota - run with --ignored to test"]
 async fn test_ask_orbit() -> Result<(), Box<dyn std::error::Error>> {
     dotenv().ok();
     let chatbot = LangChainChatBot::new_for_test()?;
@@ -21,6 +22,7 @@ async fn test_ask_orbit() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 #[tokio::test]
+#[ignore = "Requires API quota - run with --ignored to test"]
 async fn test_ask_orbit_with_testdata_image() -> Result<(), Box<dyn StdError>> {
     dotenv().ok();
     let chatbot = LangChainChatBot::new_for_test()?;
@@ -38,6 +40,7 @@ async fn test_ask_orbit_with_testdata_image() -> Result<(), Box<dyn StdError>> {
 }
 
 #[tokio::test]
+#[ignore = "Requires API quota - run with --ignored to test"]
 async fn test_ask_orbit_screenshot_tool() -> Result<(), Box<dyn StdError>> {
     dotenv().ok();
     let chatbot = LangChainChatBot::new_for_test()?;

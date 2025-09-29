@@ -1,0 +1,19 @@
+{
+  "include": [
+    "python",
+    "examples",
+    "tests"
+  ],
+  "exclude": [
+    ".venv",
+    "target"
+  ],
+  "venvPath": ".",
+  "venv": ".venv",
+  "pythonVersion": "3.9",
+  "typeCheckingMode": "basic",
+  "reportMissingImports": false,
+  "extraPaths": [
+    "./python"
+  ]
+}
