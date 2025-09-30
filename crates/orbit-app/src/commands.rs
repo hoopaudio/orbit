@@ -168,35 +168,41 @@ pub async fn process_query_stream(query: String, app_handle: AppHandle) -> Resul
 pub async fn process_query_python(query: String) -> Result<String, String> {
     println!("process_query_python called with query: {}", query);
 
-    // First, let's just return a hardcoded response to verify the command works
-    return Ok(format!("Hardcoded response for testing. You said: {}", query));
+    // Create a lightweight wrapper - the Python singleton handles the actual instance
+    let bot = PythonBotWrapper::new()
+        .map_err(|e| format!("Failed to create bot wrapper: {}", e))?;
 
-    // The Python bot code below - we'll enable this once we confirm the command is being called
-    /*
-    let python_bot = match PythonBotWrapper::new() {
-        Ok(bot) => {
-            println!("Python bot created successfully");
-            bot
-        },
-        Err(e) => {
-            let error_msg = format!("Failed to create Python bot: {}", e);
-            println!("{}", error_msg);
-            return Err(error_msg);
-        }
-    };
-
-    match python_bot.ask_orbit(&query).await {
+    match bot.ask_orbit(&query).await {
         Ok(response) => {
             println!("Got response from Python bot: {}", response);
             Ok(response)
-        },
+        }
         Err(e) => {
             let error_msg = format!("Failed to get response from Python bot: {}", e);
             println!("{}", error_msg);
             Err(error_msg)
         }
     }
-    */
+}
+
+#[tauri::command]
+pub async fn clear_python_memory() -> Result<String, String> {
+    println!("Clearing Python bot memory");
+
+    let bot = PythonBotWrapper::new()
+        .map_err(|e| format!("Failed to create bot wrapper: {}", e))?;
+
+    match bot.clear_memory().await {
+        Ok(response) => {
+            println!("Memory cleared: {}", response);
+            Ok(response)
+        }
+        Err(e) => {
+            let error_msg = format!("Failed to clear memory: {}", e);
+            println!("{}", error_msg);
+            Err(error_msg)
+        }
+    }
 }
 
 #[tauri::command]
@@ -265,7 +271,7 @@ pub fn resize_window_for_producer_mode(window: WebviewWindow) -> Result<(), Stri
     {
         use cocoa::base::{id, nil};
         use cocoa::foundation::NSRect;
-        use objc::{class, msg_send, sel, sel_impl};
+        use objc::{msg_send, sel, sel_impl};
 
         unsafe {
             let ns_window = window.ns_window().map_err(|e| e.to_string())? as id;
@@ -322,7 +328,7 @@ pub fn get_available_screen_dimensions(window: WebviewWindow) -> Result<(f64, f6
         .ok_or_else(|| "No monitor found".to_string())?;
 
     // Get the monitor's size (this is the full screen size)
-    let monitor_size = current_monitor.size();
+    let _monitor_size = current_monitor.size();
 
     // On macOS, we need to account for the menu bar and dock
     // The available work area is the screen minus system UI elements
@@ -396,7 +402,7 @@ pub fn get_visible_frame(window: WebviewWindow) -> Result<(f64, f64, f64, f64), 
     {
         use cocoa::base::{id, nil};
         use cocoa::foundation::NSRect;
-        use objc::{class, msg_send, sel, sel_impl};
+        use objc::{msg_send, sel, sel_impl};
 
         unsafe {
             let ns_window = window.ns_window().map_err(|e| e.to_string())? as id;
