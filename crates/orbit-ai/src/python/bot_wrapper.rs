@@ -26,11 +26,15 @@ impl PythonBotWrapper {
             // Import our singleton manager
             let singleton_module = PyModule::import(py, "orbit_ai.singleton_manager")?;
             let get_instance = singleton_module.getattr("get_bot_instance")?;
+            let get_loop = singleton_module.getattr("get_event_loop")?;
 
             let api_key = std::env::var("OPENROUTER_API_KEY").unwrap_or_default();
 
             // This will either create or reuse the existing bot instance
             let _ = get_instance.call1((api_key,))?;
+
+            // Also initialize the event loop
+            let _ = get_loop.call0()?;
 
             Ok::<_, PyErr>(())
         })

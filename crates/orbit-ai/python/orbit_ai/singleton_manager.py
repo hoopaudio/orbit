@@ -20,6 +20,8 @@ class BotSingleton:
         if cls._instance is None:
             cls._instance = OrbitProAgent(api_key)
             print("BotSingleton: Created new OrbitProAgent instance")
+            # Also initialize the event loop at creation time
+            cls.get_or_create_loop()
         else:
             print("BotSingleton: Reusing existing OrbitProAgent instance")
         return cls._instance
