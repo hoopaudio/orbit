@@ -96,6 +96,9 @@ fn main() {
             // Set activation poicy to Accessory to prevent the app icon from showing on the dock
             app.set_activation_policy(tauri::ActivationPolicy::Accessory);
 
+            // Initialize Python bot at startup to avoid cold start delays on first query
+            commands::initialize_python_bot();
+
             let handle = app.app_handle();
 
             let window = handle.get_webview_window(ORBIT_LABEL).unwrap();
@@ -147,7 +150,8 @@ fn main() {
             show,
             hide,
             get_visible_frame,
-            resize_window_for_producer_mode
+            resize_window_for_producer_mode,
+            clear_python_memory
         ]);
 
     app.build(tauri::generate_context!())

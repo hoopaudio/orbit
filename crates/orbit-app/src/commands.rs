@@ -7,6 +7,24 @@ use std::{
 use tauri::{image::Image, menu::Menu, AppHandle, Emitter, Manager, State, WebviewWindow, Wry};
 use tauri_nspanel::ManagerExt;
 
+/// Initialize the Python bot at startup to avoid cold start delays
+pub fn initialize_python_bot() {
+    println!("Initializing Python bot at startup...");
+
+    // Spawn a background task to initialize the bot
+    std::thread::spawn(|| {
+        match PythonBotWrapper::new() {
+            Ok(_) => {
+                println!("Python bot successfully warmed up at startup");
+            }
+            Err(e) => {
+                eprintln!("Failed to initialize Python bot at startup: {}", e);
+                // Non-fatal - will retry on first query
+            }
+        }
+    });
+}
+
 #[tauri::command]
 pub fn show(app_handle: AppHandle) {
     let window = app_handle.get_webview_window(ORBIT_LABEL).unwrap();
