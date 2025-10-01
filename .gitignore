@@ -43,3 +43,4 @@ __pycache__/
 CLAUDE.md
 .crush
 claude_prompt.md
+/ui-bugs
