@@ -3,6 +3,7 @@ Orbit Pro Agent - Advanced AI assistant powered by LangChain.
 Supports multiple providers including Vertex AI, OpenAI, and OpenRouter.
 """
 
+from typing import Optional
 from orbit_ai.langchain_bot import LangChainBot
 
 
@@ -12,6 +13,6 @@ class OrbitProAgent(LangChainBot):
 
 
 # Factory function to create agent instance
-def create_agent(api_key: str = None) -> OrbitProAgent:
+def create_agent(api_key: Optional[str] = None) -> OrbitProAgent:
     """Create a new instance of the Orbit Pro Agent."""
     return OrbitProAgent(api_key)

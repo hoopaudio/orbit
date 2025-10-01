@@ -28,11 +28,19 @@ function App() {
 
     // Add keyboard shortcut to clear conversation (Cmd+K)
     useEffect(() => {
-        const handleKeyDown = (e: KeyboardEvent) => {
+        const handleKeyDown = async (e: KeyboardEvent) => {
             if (e.metaKey && e.key === 'k') {
                 e.preventDefault();
                 setHistory([]);
                 setQuery("");
+
+                // Also clear the Python bot's memory
+                try {
+                    await invoke("clear_python_memory");
+                    console.log("Python memory cleared");
+                } catch (error) {
+                    console.error("Failed to clear Python memory:", error);
+                }
             }
         };
 
@@ -86,6 +94,7 @@ function App() {
             return;
         }
         processQuery(queryString);
+        setQuery("");  // Clear input after processing query
     };
 
     const handleSubmit = (e: React.FormEvent) => {

@@ -15,7 +15,7 @@ class BotSingleton:
     _loop: Optional[asyncio.AbstractEventLoop] = None
 
     @classmethod
-    def get_instance(cls, api_key: str = None) -> OrbitProAgent:
+    def get_instance(cls, api_key: Optional[str] = None) -> OrbitProAgent:
         """Get or create the singleton bot instance"""
         if cls._instance is None:
             # Create the event loop first, before creating the bot
@@ -44,8 +44,7 @@ class BotSingleton:
             if hasattr(cls._instance, 'clear_memory'):
                 try:
                     # Run clear_memory synchronously
-                    loop = cls.get_or_create_loop()
-                    loop.run_until_complete(cls._instance.clear_memory())
+                    cls._instance.clear_memory()
                 except:
                     pass  # Ignore errors during cleanup
         cls._instance = None
@@ -64,7 +63,7 @@ class BotSingleton:
 _bot_singleton = BotSingleton()
 
 
-def get_bot_instance(api_key: str = None) -> OrbitProAgent:
+def get_bot_instance(api_key: Optional[str] = None) -> OrbitProAgent:
     """Get the singleton bot instance"""
     return _bot_singleton.get_instance(api_key)
 
@@ -84,19 +83,19 @@ def has_bot_instance() -> bool:
     return _bot_singleton.has_instance()
 
 
-async def ask_bot_async(question: str, api_key: str = None) -> str:
+async def ask_bot_async(question: str, api_key: Optional[str] = None) -> str:
     """Async wrapper for asking the bot a question"""
     bot = get_bot_instance(api_key)
     return await bot.ask(question)
 
 
-async def ask_bot_with_image_async(question: str, image_path: str, api_key: str = None) -> str:
+async def ask_bot_with_image_async(question: str, image_path: str, api_key: Optional[str] = None) -> str:
     """Async wrapper for asking the bot with an image"""
     bot = get_bot_instance(api_key)
     return await bot.ask_with_image(question, image_path)
 
 
-async def ask_bot_stream_async(question: str, api_key: str = None):
+async def ask_bot_stream_async(question: str, api_key: Optional[str] = None):
     """Async wrapper for streaming bot responses"""
     bot = get_bot_instance(api_key)
     async for chunk in bot.ask_stream(question):

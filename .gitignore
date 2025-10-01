@@ -30,7 +30,16 @@ yeet.md
 Cargo.lock
 **/*.rs.bk
 
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.pyc
+
 # Environment and config
 .env
 CLAUDE.md
 .crush
+claude_prompt.md

@@ -19,7 +19,7 @@ class LangChainBot:
         """Initialize the bot with the configured provider"""
         self.api_key = api_key
         self.provider = os.getenv("ORBIT_AI_PROVIDER", "vertex_ai").lower()
-        self.llm = None
+        self.llm: Optional[BaseChatModel] = None
         self.memory = ConversationBufferMemory(return_messages=True)
         self.conversation_history: List[BaseMessage] = []
 
@@ -28,6 +28,10 @@ class LangChainBot:
 
     def _warmup_connection(self):
         """Warm up the connection to the LLM provider"""
+        # Only warm up if we have an LLM configured
+        if self.llm is None:
+            return
+
         try:
             print("Warming up LLM connection...")
             # Create a simple test message
@@ -47,13 +51,9 @@ class LangChainBot:
 
             async def warmup():
                 # Make a quick test call to establish the connection
-                stream = self.llm.astream(test_messages)
-                try:
-                    async for _ in stream:
+                if self.llm is not None:
+                    async for _ in self.llm.astream(test_messages):
                         break  # Just get the first chunk to establish connection
-                finally:
-                    # Properly close the stream
-                    await stream.aclose()
 
             loop.run_until_complete(warmup())
             # Don't close the loop - it's managed by the singleton
@@ -74,7 +74,7 @@ class LangChainBot:
                 model_name = os.getenv("VERTEX_MODEL", "gemini-2.0-flash")
 
                 self.llm = ChatVertexAI(
-                    model_name=model_name,
+                    model=model_name,
                     project=project_id,
                     location=location,
                     temperature=0.7,
@@ -93,13 +93,14 @@ class LangChainBot:
         elif self.provider == "openai":
             try:
                 from langchain_openai import ChatOpenAI
+                from pydantic import SecretStr
 
                 api_key = os.getenv("OPENAI_API_KEY") or self.api_key
                 model_name = os.getenv("OPENAI_MODEL", "gpt-4-turbo-preview")
 
                 self.llm = ChatOpenAI(
-                    api_key=api_key,
-                    model_name=model_name,
+                    api_key=SecretStr(api_key) if api_key else None,
+                    model=model_name,
                     temperature=0.7,
                 )
                 print(f"Initialized LangChain with OpenAI ({model_name})")
@@ -110,14 +111,15 @@ class LangChainBot:
         elif self.provider == "openrouter":
             try:
                 from langchain_openai import ChatOpenAI
+                from pydantic import SecretStr
 
                 api_key = os.getenv("OPENROUTER_API_KEY") or self.api_key
                 model_name = os.getenv("OPENROUTER_MODEL", "google/gemini-flash-1.5")
 
                 self.llm = ChatOpenAI(
-                    api_key=api_key,
+                    api_key=SecretStr(api_key) if api_key else None,
                     base_url="https://openrouter.ai/api/v1",
-                    model_name=model_name,
+                    model=model_name,
                     temperature=0.7,
                     default_headers={
                         "HTTP-Referer": "https://orbit-ai.app",
@@ -157,7 +159,21 @@ class LangChainBot:
                 self.conversation_history.append(HumanMessage(content=question))
                 self.conversation_history.append(response)
 
-                return response.content
+                # Handle different content types
+                content = response.content
+                if isinstance(content, str):
+                    return content
+                elif isinstance(content, list):
+                    # For multimodal responses, join text parts
+                    text_parts = []
+                    for item in content:
+                        if isinstance(item, str):
+                            text_parts.append(item)
+                        elif isinstance(item, dict) and 'text' in item:
+                            text_parts.append(item['text'])
+                    return ' '.join(text_parts)
+                else:
+                    return str(content)
             except Exception as e:
                 print(f"Error calling LangChain: {e}")
                 return f"Error: {str(e)}"
@@ -184,8 +200,24 @@ class LangChainBot:
                 full_response = ""
                 async for chunk in self.llm.astream(messages):
                     if hasattr(chunk, 'content') and chunk.content:
-                        yield chunk.content
-                        full_response += chunk.content
+                        # Handle different content types
+                        content = chunk.content
+                        if isinstance(content, str):
+                            text = content
+                        elif isinstance(content, list):
+                            # For multimodal responses, extract text
+                            text_parts = []
+                            for item in content:
+                                if isinstance(item, str):
+                                    text_parts.append(item)
+                                elif isinstance(item, dict) and 'text' in item:
+                                    text_parts.append(item['text'])
+                            text = ' '.join(text_parts)
+                        else:
+                            text = str(content)
+
+                        yield text
+                        full_response += text
 
                 # Store in history
                 self.conversation_history.append(HumanMessage(content=question))
@@ -225,8 +257,24 @@ class LangChainBot:
                 full_response = ""
                 async for chunk in self.llm.astream(messages):
                     if chunk.content:
-                        full_response += chunk.content
-                        yield chunk.content
+                        # Handle different content types
+                        content = chunk.content
+                        if isinstance(content, str):
+                            text = content
+                        elif isinstance(content, list):
+                            # For multimodal responses, extract text
+                            text_parts = []
+                            for item in content:
+                                if isinstance(item, str):
+                                    text_parts.append(item)
+                                elif isinstance(item, dict) and 'text' in item:
+                                    text_parts.append(item['text'])
+                            text = ' '.join(text_parts)
+                        else:
+                            text = str(content)
+
+                        full_response += text
+                        yield text
 
                 # Update conversation history
                 self.conversation_history.append(HumanMessage(content=question))
@@ -275,7 +323,22 @@ class LangChainBot:
                 )
 
                 response = await self.llm.ainvoke([message])
-                return response.content
+
+                # Handle different content types
+                content = response.content
+                if isinstance(content, str):
+                    return content
+                elif isinstance(content, list):
+                    # For multimodal responses, join text parts
+                    text_parts = []
+                    for item in content:
+                        if isinstance(item, str):
+                            text_parts.append(item)
+                        elif isinstance(item, dict) and 'text' in item:
+                            text_parts.append(item['text'])
+                    return ' '.join(text_parts)
+                else:
+                    return str(content)
             except Exception as e:
                 print(f"Error with multimodal input: {e}")
                 return f"Error processing image: {str(e)}"

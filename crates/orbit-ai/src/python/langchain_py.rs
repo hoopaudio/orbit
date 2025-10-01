@@ -21,9 +21,9 @@ impl PyLangChainBot {
             let module_dir = concat!(env!("CARGO_MANIFEST_DIR"), "/python");
             path.call_method1("append", (module_dir,))?;
 
-            // Import our Python bot module (using the dummy for MVP)
-            let module = PyModule::import(py, "orbit_ai.dummy_bot")?;
-            let bot_class = module.getattr("DummyLangChainBot")?;
+            // Import our Python bot module
+            let module = PyModule::import(py, "orbit_ai.orbit_pro_agent")?;
+            let bot_class = module.getattr("OrbitProAgent")?;
 
             // Create an instance of the bot
             let api_key = std::env::var("OPENROUTER_API_KEY").unwrap_or_default();

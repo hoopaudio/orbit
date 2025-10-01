@@ -18,14 +18,32 @@ impl PythonBotWrapper {
             let sys = py.import("sys")?;
             let path = sys.getattr("path")?;
 
-            // Use absolute path to the Python module
-            let module_dir = "/Users/cuthlehoop/projects/orbit/crates/orbit-ai/python";
+            #[cfg(debug_assertions)]
+            let module_paths = vec![
+                "./crates/orbit-ai/python".to_string(),
+                "./crates/orbit-ai".to_string(),
+            ];
 
-            // Check if path already contains our module dir
+            #[cfg(not(debug_assertions))]
+            let module_paths = {
+                let exe_path =
+                    std::env::current_exe().unwrap_or_else(|_| std::path::PathBuf::from("."));
+                let exe_dir = exe_path.parent().unwrap_or(std::path::Path::new("."));
+                vec![
+                    exe_dir.join("python").to_string_lossy().to_string(),
+                    exe_dir.to_string_lossy().to_string(),
+                ]
+            };
+
+            // Check if path already contains our module dirs
             let path_list: Vec<String> = path.extract()?;
-            if !path_list.iter().any(|p| p == module_dir) {
-                path.call_method1("append", (module_dir,))?;
-                path.call_method1("append", ("/Users/cuthlehoop/projects/orbit/crates/orbit-ai",))?;
+            for module_path in &module_paths {
+                if !path_list
+                    .iter()
+                    .any(|p| p.contains("orbit-ai/python") || p.ends_with(module_path))
+                {
+                    path.call_method1("append", (module_path,))?;
+                }
             }
 
             Ok::<_, PyErr>(())
@@ -41,9 +59,29 @@ impl PythonBotWrapper {
             // Set up paths
             let sys = py.import("sys")?;
             let path = sys.getattr("path")?;
-            let module_dir = "/Users/cuthlehoop/projects/orbit/crates/orbit-ai/python";
-            path.call_method1("append", (module_dir,))?;
-            path.call_method1("append", ("/Users/cuthlehoop/projects/orbit/crates/orbit-ai",))?;
+
+            // For development, use relative paths from project root
+            // For production, use paths relative to the executable
+            #[cfg(debug_assertions)]
+            let module_paths = vec![
+                "./crates/orbit-ai/python".to_string(),
+                "./crates/orbit-ai".to_string(),
+            ];
+
+            #[cfg(not(debug_assertions))]
+            let module_paths = {
+                let exe_path =
+                    std::env::current_exe().unwrap_or_else(|_| std::path::PathBuf::from("."));
+                let exe_dir = exe_path.parent().unwrap_or(std::path::Path::new("."));
+                vec![
+                    exe_dir.join("python").to_string_lossy().to_string(),
+                    exe_dir.to_string_lossy().to_string(),
+                ]
+            };
+
+            for module_path in &module_paths {
+                path.call_method1("append", (module_path,))?;
+            }
 
             // Import and initialize singleton
             let singleton_module = PyModule::import(py, "orbit_ai.singleton_manager")?;
