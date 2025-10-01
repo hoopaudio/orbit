@@ -15,6 +15,12 @@
   overflow-y: auto;
   animation: fadeInUp 0.5s ease-out;
 
+  // Scrolling properties for better streaming experience
+  scroll-behavior: auto; // Use auto instead of smooth to prevent jumping during streaming
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  will-change: scroll-position; // Optimize for frequent scroll updates
+
   // In producer mode, let parent control height
   .producer-mode-content & {
     max-height: none;

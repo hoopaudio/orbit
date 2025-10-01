@@ -18,10 +18,10 @@ class BotSingleton:
     def get_instance(cls, api_key: str = None) -> OrbitProAgent:
         """Get or create the singleton bot instance"""
         if cls._instance is None:
+            # Create the event loop first, before creating the bot
+            cls.get_or_create_loop()
             cls._instance = OrbitProAgent(api_key)
             print("BotSingleton: Created new OrbitProAgent instance")
-            # Also initialize the event loop at creation time
-            cls.get_or_create_loop()
         else:
             print("BotSingleton: Reusing existing OrbitProAgent instance")
         return cls._instance
@@ -94,3 +94,10 @@ async def ask_bot_with_image_async(question: str, image_path: str, api_key: str 
     """Async wrapper for asking the bot with an image"""
     bot = get_bot_instance(api_key)
     return await bot.ask_with_image(question, image_path)
+
+
+async def ask_bot_stream_async(question: str, api_key: str = None):
+    """Async wrapper for streaming bot responses"""
+    bot = get_bot_instance(api_key)
+    async for chunk in bot.ask_stream(question):
+        yield chunk

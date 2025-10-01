@@ -26,6 +26,41 @@ class LangChainBot:
         # Initialize the LLM based on provider
         self._initialize_llm()
 
+    def _warmup_connection(self):
+        """Warm up the connection to the LLM provider"""
+        try:
+            print("Warming up LLM connection...")
+            # Create a simple test message
+            test_messages = [SystemMessage(content="You are a helpful assistant."),
+                           HumanMessage(content="Hi")]
+
+            # Use asyncio to run the async warmup
+            import asyncio
+
+            # Get the current event loop - it should already be set by singleton manager
+            try:
+                loop = asyncio.get_event_loop()
+            except RuntimeError:
+                # If no loop exists, create one
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+
+            async def warmup():
+                # Make a quick test call to establish the connection
+                stream = self.llm.astream(test_messages)
+                try:
+                    async for _ in stream:
+                        break  # Just get the first chunk to establish connection
+                finally:
+                    # Properly close the stream
+                    await stream.aclose()
+
+            loop.run_until_complete(warmup())
+            # Don't close the loop - it's managed by the singleton
+            print("LLM connection warmed up successfully")
+        except Exception as e:
+            print(f"Warning: Failed to warm up connection: {e}")
+
     def _initialize_llm(self):
         """Initialize the language model based on the configured provider"""
 
@@ -48,6 +83,9 @@ class LangChainBot:
                     top_k=40,
                 )
                 print(f"Orbit Pro Agent initialized with Vertex AI ({model_name})")
+
+                # Warm up the connection with a simple test query
+                self._warmup_connection()
             except Exception as e:
                 print(f"Failed to initialize Vertex AI: {e}")
                 self.provider = "dummy"
@@ -164,6 +202,52 @@ class LangChainBot:
         for word in response.split():
             yield word + " "
             await asyncio.sleep(0.05)
+
+    async def ask_stream(self, question: str, system_prompt: Optional[str] = None):
+        """Send a question to the LLM and stream the response"""
+
+        # Use LangChain if available
+        if self.llm is not None:
+            try:
+                messages = []
+
+                # Add system prompt if provided
+                if system_prompt:
+                    messages.append(SystemMessage(content=system_prompt))
+
+                # Add conversation history (last 10 messages for context)
+                messages.extend(self.conversation_history[-10:])
+
+                # Add the user's question
+                messages.append(HumanMessage(content=question))
+
+                # Stream response from LLM
+                full_response = ""
+                async for chunk in self.llm.astream(messages):
+                    if chunk.content:
+                        full_response += chunk.content
+                        yield chunk.content
+
+                # Update conversation history
+                self.conversation_history.append(HumanMessage(content=question))
+                self.conversation_history.append(AIMessage(content=full_response))
+
+                # Store in memory
+                self.memory.save_context({"input": question}, {"output": full_response})
+
+            except Exception as e:
+                print(f"Error streaming from LangChain: {e}")
+                yield f"Error: {str(e)}"
+        else:
+            # Dummy streaming for testing
+            response = await self._dummy_response(question)
+            # Simulate streaming by yielding chunks
+            words = response.split()
+            for i, word in enumerate(words):
+                if i > 0:
+                    yield " "
+                yield word
+                await asyncio.sleep(0.05)  # Simulate streaming delay
 
     async def ask_with_image(self, question: str, image_path: str) -> str:
         """Handle multimodal input with image"""
