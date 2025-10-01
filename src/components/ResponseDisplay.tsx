@@ -90,16 +90,21 @@ export const ResponseDisplay: React.FC<ResponseDisplayProps> = ({ history, isLoa
                     </div>
                 ) : (
                     <>
-                        {history.map((message, index) => (
-                            <div key={index} className={`message-bubble ${message.speaker}`}>
-                                <ReactMarkdown>{message.text}</ReactMarkdown>
-                            </div>
-                        ))}
-                        {isLoading && (
-                            <div className="message-bubble ai">
-                                <LoadingAnimation />
-                            </div>
-                        )}
+                        {history.map((message, index) => {
+                            // Don't render empty AI messages during loading
+                            if (message.speaker === 'ai' && message.text === '' && isLoading && index === history.length - 1) {
+                                return (
+                                    <div key={index} className="message-bubble ai loading">
+                                        <LoadingAnimation />
+                                    </div>
+                                );
+                            }
+                            return (
+                                <div key={index} className={`message-bubble ${message.speaker}`}>
+                                    <ReactMarkdown>{message.text}</ReactMarkdown>
+                                </div>
+                            );
+                        })}
                     </>
                 )}
             </div>
