@@ -13,7 +13,7 @@ pub fn initialize_python_bot() {
 
     // Spawn a background task to initialize the bot
     std::thread::spawn(|| {
-        match PythonBotWrapper::new() {
+        match PythonBotWrapper::initialize() {
             Ok(_) => {
                 println!("Python bot successfully warmed up at startup");
             }
@@ -197,6 +197,28 @@ pub async fn process_query_python(query: String) -> Result<String, String> {
         }
         Err(e) => {
             let error_msg = format!("Failed to get response from Python bot: {}", e);
+            println!("{}", error_msg);
+            Err(error_msg)
+        }
+    }
+}
+
+#[tauri::command]
+pub async fn process_query_python_stream(query: String, app_handle: AppHandle) -> Result<(), String> {
+    println!("process_query_python_stream called with query: {}", query);
+
+    // Create a lightweight wrapper - reuses the Python singleton
+    let bot = PythonBotWrapper::new()
+        .map_err(|e| format!("Failed to create bot wrapper: {}", e))?;
+
+    // Stream the response
+    match bot.ask_orbit_stream(&query, app_handle).await {
+        Ok(_) => {
+            println!("Streaming completed successfully");
+            Ok(())
+        }
+        Err(e) => {
+            let error_msg = format!("Failed to stream response: {}", e);
             println!("{}", error_msg);
             Err(error_msg)
         }

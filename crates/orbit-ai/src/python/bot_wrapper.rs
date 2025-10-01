@@ -1,6 +1,7 @@
 use anyhow::{anyhow, Result};
 use pyo3::prelude::*;
 use pyo3::types::PyModule;
+use tauri::{AppHandle, Emitter};
 
 /// A wrapper for calling Python bot from Rust/Tauri
 /// Uses a singleton pattern on the Python side to maintain state
@@ -10,37 +11,54 @@ pub struct PythonBotWrapper {
 
 impl PythonBotWrapper {
     pub fn new() -> Result<Self> {
-        // Initialize the Python singleton if needed
+        // This is now lightweight - just ensures Python paths are set
+        // The actual bot initialization happens in the singleton manager
         Python::with_gil(|py| {
-            // Add the python directory to sys.path
+            // Only set up paths if not already done
             let sys = py.import("sys")?;
             let path = sys.getattr("path")?;
 
             // Use absolute path to the Python module
             let module_dir = "/Users/cuthlehoop/projects/orbit/crates/orbit-ai/python";
-            path.call_method1("append", (module_dir,))?;
 
-            // Also add parent directory in case module is there
+            // Check if path already contains our module dir
+            let path_list: Vec<String> = path.extract()?;
+            if !path_list.iter().any(|p| p == module_dir) {
+                path.call_method1("append", (module_dir,))?;
+                path.call_method1("append", ("/Users/cuthlehoop/projects/orbit/crates/orbit-ai",))?;
+            }
+
+            Ok::<_, PyErr>(())
+        })
+        .map_err(|e: PyErr| anyhow!("Failed to set Python paths: {}", e))?;
+
+        Ok(Self {})
+    }
+
+    pub fn initialize() -> Result<()> {
+        // This method actually initializes the singleton
+        Python::with_gil(|py| {
+            // Set up paths
+            let sys = py.import("sys")?;
+            let path = sys.getattr("path")?;
+            let module_dir = "/Users/cuthlehoop/projects/orbit/crates/orbit-ai/python";
+            path.call_method1("append", (module_dir,))?;
             path.call_method1("append", ("/Users/cuthlehoop/projects/orbit/crates/orbit-ai",))?;
 
-            // Import our singleton manager
+            // Import and initialize singleton
             let singleton_module = PyModule::import(py, "orbit_ai.singleton_manager")?;
             let get_instance = singleton_module.getattr("get_bot_instance")?;
             let get_loop = singleton_module.getattr("get_event_loop")?;
 
             let api_key = std::env::var("OPENROUTER_API_KEY").unwrap_or_default();
 
-            // This will either create or reuse the existing bot instance
+            // Create the singleton instance
             let _ = get_instance.call1((api_key,))?;
-
-            // Also initialize the event loop
             let _ = get_loop.call0()?;
 
             Ok::<_, PyErr>(())
         })
-        .map_err(|e: PyErr| anyhow!("Failed to initialize Python bot singleton: {}", e))?;
-
-        Ok(Self {})
+        .map_err(|e: PyErr| anyhow!("Failed to initialize Python bot singleton: {}", e))
     }
 
     pub async fn ask_orbit(&self, question: &str) -> Result<String> {
@@ -106,6 +124,56 @@ impl PythonBotWrapper {
         .map_err(|e: PyErr| anyhow!("Python error: {}", e))?;
 
         Ok(result)
+    }
+
+    pub async fn ask_orbit_stream(&self, question: &str, app_handle: AppHandle) -> Result<()> {
+        let question = question.to_string();
+
+        tokio::task::spawn_blocking(move || {
+            Python::with_gil(|py| {
+                // Import singleton manager
+                let singleton_module = PyModule::import(py, "orbit_ai.singleton_manager")?;
+
+                // Get the persistent event loop
+                let get_loop = singleton_module.getattr("get_event_loop")?;
+                let loop_obj = get_loop.call0()?;
+
+                // Get the streaming async function
+                let ask_stream_async = singleton_module.getattr("ask_bot_stream_async")?;
+                let api_key = std::env::var("OPENROUTER_API_KEY").unwrap_or_default();
+
+                // Create the coroutine (generator)
+                let coro = ask_stream_async.call1((question, api_key))?;
+
+                // Iterate through the stream
+                loop {
+                    // Get the next chunk from the async generator
+                    let anext = py.eval("anext", None, None)?;
+                    let chunk_future = anext.call1((coro,))?;
+
+                    match loop_obj.call_method1("run_until_complete", (chunk_future,)) {
+                        Ok(chunk) => {
+                            let text: String = chunk.extract()?;
+                            // Emit the chunk through Tauri
+                            let _ = app_handle.emit("stream_chunk", text);
+                        }
+                        Err(_) => {
+                            // StopAsyncIteration means we're done
+                            break;
+                        }
+                    }
+                }
+
+                // Emit stream done event
+                let _ = app_handle.emit("stream_done", ());
+                Ok::<_, PyErr>(())
+            })
+        })
+        .await
+        .map_err(|e| anyhow!("Task join error: {}", e))?
+        .map_err(|e: PyErr| anyhow!("Python streaming error: {}", e))?;
+
+        Ok(())
     }
 
     pub async fn clear_memory(&self) -> Result<String> {
