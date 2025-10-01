@@ -19,10 +19,19 @@ impl PythonBotWrapper {
             let path = sys.getattr("path")?;
 
             #[cfg(debug_assertions)]
-            let module_paths = vec![
-                "./crates/orbit-ai/python".to_string(),
-                "./crates/orbit-ai".to_string(),
-            ];
+            let module_paths = {
+                let cwd = std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from("."));
+                // In dev, CWD is likely .../crates/orbit-app, so project root is parent of parent.
+                let project_root = if cwd.ends_with("crates/orbit-app") {
+                    cwd.parent().and_then(|p| p.parent()).map(|p| p.to_path_buf()).unwrap_or(cwd.clone())
+                } else {
+                    cwd.clone()
+                };
+                vec![
+                    project_root.join("crates/orbit-ai/python").to_string_lossy().to_string(),
+                    project_root.join("crates/orbit-ai").to_string_lossy().to_string(),
+                ]
+            };
 
             #[cfg(not(debug_assertions))]
             let module_paths = {
@@ -63,10 +72,19 @@ impl PythonBotWrapper {
             // For development, use relative paths from project root
             // For production, use paths relative to the executable
             #[cfg(debug_assertions)]
-            let module_paths = vec![
-                "./crates/orbit-ai/python".to_string(),
-                "./crates/orbit-ai".to_string(),
-            ];
+            let module_paths = {
+                let cwd = std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from("."));
+                // In dev, CWD is likely .../crates/orbit-app, so project root is parent of parent.
+                let project_root = if cwd.ends_with("crates/orbit-app") {
+                    cwd.parent().and_then(|p| p.parent()).map(|p| p.to_path_buf()).unwrap_or(cwd.clone())
+                } else {
+                    cwd.clone()
+                };
+                vec![
+                    project_root.join("crates/orbit-ai/python").to_string_lossy().to_string(),
+                    project_root.join("crates/orbit-ai").to_string_lossy().to_string(),
+                ]
+            };
 
             #[cfg(not(debug_assertions))]
             let module_paths = {
