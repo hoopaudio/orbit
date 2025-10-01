@@ -26,13 +26,20 @@ function App() {
     useWindowResize(containerRef, history.map(h => h.text).join('\n'), isLoading, isProducerMode);
     useWindowEvents(inputRef, setQuery, () => setHistory([]), setIsLoading);
 
+    const resetInput = () => {
+        setQuery("");
+        if (inputRef.current) {
+            inputRef.current.style.height = 'auto';
+        }
+    };
+
     // Add keyboard shortcut to clear conversation (Cmd+K)
     useEffect(() => {
         const handleKeyDown = async (e: KeyboardEvent) => {
             if (e.metaKey && e.key === 'k') {
                 e.preventDefault();
                 setHistory([]);
-                setQuery("");
+                resetInput();
 
                 // Also clear the Python bot's memory
                 try {
@@ -85,16 +92,16 @@ function App() {
     const handleProcessQuery = (queryString: string) => {
         if (queryString.trim() === "/producer") {
             setIsProducerMode(true);  // Set to true, don't toggle
-            setQuery("");
+            resetInput();
             return;
         }
         if (queryString.trim() === "/standard") {
             setIsProducerMode(false);
-            setQuery("");
+            resetInput();
             return;
         }
         processQuery(queryString);
-        setQuery("");  // Clear input after processing query
+        resetInput();
     };
 
     const handleSubmit = (e: React.FormEvent) => {
