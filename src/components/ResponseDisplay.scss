@@ -4,6 +4,8 @@
 @use '../styles/animations';
 
 .response-container {
+  position: relative;
+  z-index: 1;
   @include mixins.glass-effect(0.1);
   border: 1px solid rgba(palette.$seasalt, 0.2);
   border-radius: 20px;

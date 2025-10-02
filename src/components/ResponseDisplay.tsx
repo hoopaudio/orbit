@@ -37,7 +37,7 @@ export const ResponseDisplay: React.FC<ResponseDisplayProps> = ({ history, isLoa
         const container = scrollRef.current;
         if (!container) return;
 
-        let scrollTimer: NodeJS.Timeout;
+        let scrollTimer: number;
 
         const handleScroll = () => {
             const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 50;

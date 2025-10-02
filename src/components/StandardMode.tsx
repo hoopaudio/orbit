@@ -100,27 +100,28 @@ export const StandardMode: React.FC<StandardModeProps> = ({
             tabIndex={0}
         >
             <div className="orbit-overlay">
-                <form className="orbit-form" onSubmit={handleSubmit} data-tauri-drag-region>
-                    <div className="input-wrapper">
-                        <div className="warm-background"></div>
-                        <div className="glass-layer"></div>
+                <div style={{position: "relative", width: "100%", zIndex: 10}}>
+                    <form className="orbit-form" onSubmit={handleSubmit} data-tauri-drag-region>
+                        <div className="input-wrapper">
+                            <div className="warm-background"></div>
+                            <div className="glass-layer"></div>
 
-                        <div className="input-content">
-                            <OrbitLogo/>
-                            <InputField
-                                ref={inputRef}
-                                value={query}
-                                onChange={handleTextareaInput}
-                                onSubmit={handleSubmit}
-                                commands={commands}
-                                onSuggestionsChange={setSuggestions}
-                                onMenuVisibilityChange={setIsMenuVisible}
-                                onKeyDown={handleKeyDown}
-                            />
+                            <div className="input-content">
+                                <OrbitLogo/>
+                                <InputField
+                                    ref={inputRef}
+                                    value={query}
+                                    onChange={handleTextareaInput}
+                                    commands={commands}
+                                    onSuggestionsChange={setSuggestions}
+                                    onMenuVisibilityChange={setIsMenuVisible}
+                                    onKeyDown={handleKeyDown}
+                                />
+                            </div>
                         </div>
-                    </div>
-                </form>
-                {isMenuVisible && <AutoCompleteMenu commands={suggestions} onSelect={handleSelectCommand} selectedIndex={selectedIndex} position="bottom" />}
+                    </form>
+                    {isMenuVisible && <AutoCompleteMenu commands={suggestions} onSelect={handleSelectCommand} selectedIndex={selectedIndex} position="bottom" />}
+                </div>
 
                 <ResponseDisplay history={history} isLoading={isLoading}/>
             </div>
