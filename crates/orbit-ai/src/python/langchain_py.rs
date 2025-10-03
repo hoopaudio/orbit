@@ -45,17 +45,14 @@ impl PyLangChainBot {
         result.extract::<String>()
     }
 
-    fn ask_with_image(
-        &self,
-        py: Python,
-        question: String,
-        image_path: String,
-    ) -> PyResult<String> {
+    fn ask_with_image(&self, py: Python, question: String, image_path: String) -> PyResult<String> {
         let asyncio = py.import("asyncio")?;
         let loop_obj = asyncio.call_method0("new_event_loop")?;
         asyncio.call_method1("set_event_loop", (loop_obj,))?;
 
-        let coro = self.py_bot.call_method1(py, "ask_with_image", (question, image_path))?;
+        let coro = self
+            .py_bot
+            .call_method1(py, "ask_with_image", (question, image_path))?;
         let result = loop_obj.call_method1("run_until_complete", (coro,))?;
 
         result.extract::<String>()
