@@ -2,6 +2,8 @@
 // TODO: Implement full CLAP plugin when clap-rs adds CLAP audio plugin support
 // For now, this is a placeholder structure
 
+pub mod ableton;
+
 use anyhow::Result;
 // use orbit_core::*;  // TODO: Use when implementing actual functionality
 
