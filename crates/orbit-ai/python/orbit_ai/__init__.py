@@ -17,11 +17,11 @@ except ImportError:
 
 # Import pure Python implementations
 from .orbit_pro_agent import OrbitProAgent, create_agent
-from .langchain_bot import LangChainBot
+from .langgraph_agent import LangGraphAgent
 
 __all__ = [
     "OrbitProAgent",
-    "LangChainBot",
+    "LangGraphAgent",
     "create_agent",
     "PyLangChainBot",
     "set_openrouter_api_key",

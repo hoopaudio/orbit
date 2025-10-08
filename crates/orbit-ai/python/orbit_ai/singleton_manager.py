@@ -98,5 +98,5 @@ async def ask_bot_with_image_async(question: str, image_path: str, api_key: Opti
 async def ask_bot_stream_async(question: str, api_key: Optional[str] = None):
     """Async wrapper for streaming bot responses"""
     bot = get_bot_instance(api_key)
-    async for chunk in bot.ask_stream(question):
+    async for chunk in bot.stream(question):
         yield chunk

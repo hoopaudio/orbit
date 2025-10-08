@@ -42,6 +42,7 @@
     border-radius: 18px;
     max-width: 85%;
     line-height: 1.5;
+    font-size: 16px;
     overflow-wrap: break-word;
     -webkit-user-select: text;
     -moz-user-select: text;
@@ -86,7 +87,7 @@
   .response {
     color: palette.$seasalt;
     line-height: 1.6;
-    font-size: 14px;
+    font-size: 16px;
 
     // Re-enable text selection for response content
     -webkit-user-select: text;
