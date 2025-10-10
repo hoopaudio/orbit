@@ -1,5 +1,6 @@
-use crate::{consts::*, Pinned, TrayMenu};
+use crate::{consts::*, OrbitState, Pinned, TrayMenu};
 use orbit_ai::{LangChainChatBot, PythonBotWrapper};
+use orbit_core::{AbletonCommand, AbletonControlResponse, OrbitMessage};
 use std::{
     ops::Deref,
     sync::{atomic::AtomicBool, Mutex},
@@ -187,8 +188,8 @@ pub async fn process_query_python(query: String) -> Result<String, String> {
     println!("process_query_python called with query: {}", query);
 
     // Create a lightweight wrapper - the Python singleton handles the actual instance
-    let bot = PythonBotWrapper::new()
-        .map_err(|e| format!("Failed to create bot wrapper: {}", e))?;
+    let bot =
+        PythonBotWrapper::new().map_err(|e| format!("Failed to create bot wrapper: {}", e))?;
 
     match bot.ask_orbit(&query).await {
         Ok(response) => {
@@ -204,15 +205,33 @@ pub async fn process_query_python(query: String) -> Result<String, String> {
 }
 
 #[tauri::command]
-pub async fn process_query_python_stream(query: String, app_handle: AppHandle) -> Result<(), String> {
+pub async fn process_query_python_stream(
+    query: String,
+    app_handle: AppHandle,
+    selected_tracks: Option<String>,
+) -> Result<(), String> {
     println!("process_query_python_stream called with query: {}", query);
 
     // Create a lightweight wrapper - reuses the Python singleton
-    let bot = PythonBotWrapper::new()
-        .map_err(|e| format!("Failed to create bot wrapper: {}", e))?;
+    let bot =
+        PythonBotWrapper::new().map_err(|e| format!("Failed to create bot wrapper: {}", e))?;
+
+    // Prepare the query with track context if provided
+    let enhanced_query = if let Some(tracks_json) = selected_tracks {
+        if !tracks_json.is_empty() && tracks_json != "[]" {
+            format!(
+                "Context: I'm working with these tracks: {}\n\nQuery: {}",
+                tracks_json, query
+            )
+        } else {
+            query
+        }
+    } else {
+        query
+    };
 
     // Stream the response
-    match bot.ask_orbit_stream(&query, app_handle).await {
+    match bot.ask_orbit_stream(&enhanced_query, app_handle).await {
         Ok(_) => {
             println!("Streaming completed successfully");
             Ok(())
@@ -229,8 +248,8 @@ pub async fn process_query_python_stream(query: String, app_handle: AppHandle) -
 pub async fn clear_python_memory() -> Result<String, String> {
     println!("Clearing Python bot memory");
 
-    let bot = PythonBotWrapper::new()
-        .map_err(|e| format!("Failed to create bot wrapper: {}", e))?;
+    let bot =
+        PythonBotWrapper::new().map_err(|e| format!("Failed to create bot wrapper: {}", e))?;
 
     match bot.clear_memory().await {
         Ok(response) => {
@@ -462,5 +481,263 @@ pub fn get_visible_frame(window: WebviewWindow) -> Result<(f64, f64, f64, f64), 
     #[cfg(not(target_os = "macos"))]
     {
         Ok((0.0, 0.0, 0.0, 0.0))
+    }
+}
+
+/// Connect to Ableton Live
+#[tauri::command]
+pub async fn connect_ableton(orbit_state: State<'_, OrbitState>) -> Result<String, String> {
+    let mut connector = orbit_state.0.lock().await;
+
+    match connector.connect_ableton().await {
+        Ok(_) => Ok("Connected to Ableton Live".to_string()),
+        Err(e) => Err(format!("Failed to connect to Ableton Live: {}", e)),
+    }
+}
+
+/// Disconnect from Ableton Live
+#[tauri::command]
+pub async fn disconnect_ableton(orbit_state: State<'_, OrbitState>) -> Result<String, String> {
+    let mut connector = orbit_state.0.lock().await;
+    connector.disconnect_ableton().await;
+    Ok("Disconnected from Ableton Live".to_string())
+}
+
+/// Send a command to Ableton Live
+#[tauri::command]
+pub async fn send_ableton_command(
+    orbit_state: State<'_, OrbitState>,
+    command: AbletonCommand,
+) -> Result<AbletonControlResponse, String> {
+    let connector = orbit_state.0.lock().await;
+
+    let message = OrbitMessage::ableton_control(command);
+
+    match connector.handle_message(message).await {
+        Ok(Some(response)) => {
+            // Parse the response
+            let response_data: AbletonControlResponse = serde_json::from_value(response.payload)
+                .map_err(|e| format!("Failed to parse response: {}", e))?;
+            Ok(response_data)
+        }
+        Ok(None) => Err("No response from Ableton".to_string()),
+        Err(e) => Err(format!("Command failed: {}", e)),
+    }
+}
+
+/// Test OSC connection to Ableton Live
+#[tauri::command]
+pub async fn test_ableton_connection() -> Result<String, String> {
+    println!("test_ableton_connection called");
+
+    let result = tokio::task::spawn_blocking(move || {
+        orbit_ai::pyo3::Python::with_gil(|py| {
+            // Import the ableton_client module
+            let sys = py
+                .import("sys")
+                .map_err(|e| format!("Failed to import sys: {}", e))?;
+            let path = sys
+                .getattr("path")
+                .map_err(|e| format!("Failed to get sys.path: {}", e))?;
+
+            // Add the orbit-connector path
+            #[cfg(debug_assertions)]
+            let module_path = {
+                let cwd = std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from("."));
+                let project_root = if cwd.ends_with("crates/orbit-app") {
+                    cwd.parent()
+                        .and_then(|p| p.parent())
+                        .map(|p| p.to_path_buf())
+                        .unwrap_or(cwd.clone())
+                } else {
+                    cwd.clone()
+                };
+                project_root
+                    .join("crates/orbit-connector/src/python")
+                    .to_string_lossy()
+                    .to_string()
+            };
+
+            #[cfg(not(debug_assertions))]
+            let module_path = {
+                let exe_path =
+                    std::env::current_exe().unwrap_or_else(|_| std::path::PathBuf::from("."));
+                let exe_dir = exe_path.parent().unwrap_or(std::path::Path::new("."));
+                exe_dir.join("python").to_string_lossy().to_string()
+            };
+
+            let path_list: Vec<String> = path
+                .extract()
+                .map_err(|e| format!("Failed to extract path: {}", e))?;
+            if !path_list.iter().any(|p| p.contains(&module_path)) {
+                path.call_method1("append", (&module_path,))
+                    .map_err(|e| format!("Failed to append path: {}", e))?;
+            }
+
+            // Import ableton_client
+            let ableton_client = py
+                .import("ableton_client")
+                .map_err(|e| format!("Failed to import ableton_client: {}", e))?;
+            let get_ableton_client = ableton_client
+                .getattr("get_ableton_client")
+                .map_err(|e| format!("Failed to get get_ableton_client: {}", e))?;
+            let client = get_ableton_client
+                .call0()
+                .map_err(|e| format!("Failed to create client: {}", e))?;
+
+            // Test basic connection by sending a simple OSC message
+            let send_message = client
+                .getattr("send_message")
+                .map_err(|e| format!("Failed to get send_message method: {}", e))?;
+            let result = send_message
+                .call1(("/live/test",))
+                .map_err(|e| format!("Failed to send test message: {}", e))?;
+            let success: bool = result.extract().unwrap_or(false);
+
+            if success {
+                Ok("OSC message sent successfully - connection working".to_string())
+            } else {
+                Err("Failed to send OSC message - connection may be down".to_string())
+            }
+        })
+    })
+    .await;
+
+    match result {
+        Ok(Ok(msg)) => {
+            println!("Connection test successful: {}", msg);
+            Ok(msg)
+        }
+        Ok(Err(e)) => {
+            let error_msg = format!("Connection test failed: {}", e);
+            println!("{}", error_msg);
+            Err(error_msg)
+        }
+        Err(e) => {
+            let error_msg = format!("Task execution failed: {}", e);
+            println!("{}", error_msg);
+            Err(error_msg)
+        }
+    }
+}
+
+/// Get track information from Ableton Live
+/// refactor dog shit function
+#[tauri::command]
+pub async fn get_ableton_tracks() -> Result<String, String> {
+    println!("get_ableton_tracks called");
+
+    // Use a simpler approach that calls the OSC client directly through the existing Python integration
+    let result = tokio::task::spawn_blocking(move || {
+        orbit_ai::pyo3::Python::with_gil(|py| {
+            // Import the ableton_client module
+            let sys = py
+                .import("sys")
+                .map_err(|e| format!("Failed to import sys: {}", e))?;
+            let path = sys
+                .getattr("path")
+                .map_err(|e| format!("Failed to get sys.path: {}", e))?;
+
+            // Add the orbit-connector path
+            #[cfg(debug_assertions)]
+            let module_path = {
+                let cwd = std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from("."));
+                let project_root = if cwd.ends_with("crates/orbit-app") {
+                    cwd.parent()
+                        .and_then(|p| p.parent())
+                        .map(|p| p.to_path_buf())
+                        .unwrap_or(cwd.clone())
+                } else {
+                    cwd.clone()
+                };
+                project_root
+                    .join("crates/orbit-connector/src/python")
+                    .to_string_lossy()
+                    .to_string()
+            };
+
+            #[cfg(not(debug_assertions))]
+            let module_path = {
+                let exe_path =
+                    std::env::current_exe().unwrap_or_else(|_| std::path::PathBuf::from("."));
+                let exe_dir = exe_path.parent().unwrap_or(std::path::Path::new("."));
+                exe_dir.join("python").to_string_lossy().to_string()
+            };
+
+            let path_list: Vec<String> = path
+                .extract()
+                .map_err(|e| format!("Failed to extract path: {}", e))?;
+            if !path_list.iter().any(|p| p.contains(&module_path)) {
+                path.call_method1("append", (&module_path,))
+                    .map_err(|e| format!("Failed to append path: {}", e))?;
+            }
+
+            // Import ableton_client
+            let ableton_client = py
+                .import("ableton_client")
+                .map_err(|e| format!("Failed to import ableton_client: {}", e))?;
+            let get_ableton_client = ableton_client
+                .getattr("get_ableton_client")
+                .map_err(|e| format!("Failed to get get_ableton_client: {}", e))?;
+            let client = get_ableton_client
+                .call0()
+                .map_err(|e| format!("Failed to create client: {}", e))?;
+
+            // Call get_track_names
+            let get_track_names = client
+                .getattr("get_track_names")
+                .map_err(|e| format!("Failed to get get_track_names method: {}", e))?;
+            let tracks_result = get_track_names
+                .call0()
+                .map_err(|e| format!("Failed to call get_track_names: {}", e))?;
+
+            // Extract the result as a Python list
+            if let Ok(tracks) = tracks_result.downcast::<orbit_ai::pyo3::types::PyList>() {
+                // Convert Python objects to JSON
+                let mut track_list = Vec::new();
+                for track_obj in tracks.iter() {
+                    if let Ok(track_dict) = track_obj.downcast::<orbit_ai::pyo3::types::PyDict>() {
+                        let mut track_json = serde_json::Map::new();
+                        for (key, value) in track_dict.iter() {
+                            let key_str: String =
+                                key.extract().unwrap_or_else(|_| "unknown".to_string());
+
+                            if let Ok(string_val) = value.extract::<String>() {
+                                track_json.insert(key_str, serde_json::Value::String(string_val));
+                            } else if let Ok(int_val) = value.extract::<i64>() {
+                                track_json.insert(
+                                    key_str,
+                                    serde_json::Value::Number(serde_json::Number::from(int_val)),
+                                );
+                            } else if let Ok(bool_val) = value.extract::<bool>() {
+                                track_json.insert(key_str, serde_json::Value::Bool(bool_val));
+                            }
+                        }
+                        track_list.push(serde_json::Value::Object(track_json));
+                    }
+                }
+                Ok(serde_json::to_string(&track_list).unwrap_or_else(|_| "[]".to_string()))
+            } else {
+                Err("No tracks found or connection failed".to_string())
+            }
+        })
+    })
+    .await;
+
+    match result {
+        Ok(Ok(tracks_json)) => {
+            println!("Successfully got tracks: {}", tracks_json);
+            Ok(tracks_json)
+        }
+        Ok(Err(e)) => {
+            let error_msg = format!("Failed to get tracks from Ableton: {}", e);
+            println!("{}", error_msg);
+            Err(error_msg)
+        }
+        Err(e) => {
+            let error_msg = format!("Task execution failed: {}", e);
+            println!("{}", error_msg);
+            Err(error_msg)
+        }
     }
 }

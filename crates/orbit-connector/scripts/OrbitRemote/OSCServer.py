@@ -46,7 +46,14 @@ class OSCServer:
 
         try:
             address, args = self._parse_osc_message(data)
-            self.parent.log_message(f"OSC: {address} {args}")
+            self.parent.log_message(f"OSC UPDATED CODE: {address} {args}")
+            self.parent.log_message(f"DEBUG: address repr = {repr(address)}")
+
+            if address == "/live/tracks":
+                self.parent.log_message("DEBUG: /live/tracks message parsed, entering handler")
+
+            # TEMP DEBUG: Always log for any message to test logging
+            self.parent.log_message(f"TEMP DEBUG: Processing address {address}")
 
             song = self.parent._c_instance.song()
 
@@ -116,6 +123,10 @@ class OSCServer:
                 response = self._get_live_set_info()
                 self._send_response(addr, "/live/get/response", response)
 
+            elif address == "/live/tracks":
+                response = self._get_track_info()
+                self._send_response(addr, "/live/tracks/response", response)
+
         except Exception as e:
             self.parent.log_message(f"Error handling OSC message: {e}")
             self._send_response(addr, "/error", [str(e)])
@@ -129,6 +140,36 @@ class OSCServer:
             "scene_count": len(song.scenes)
         }
         return [str(info)]
+
+    def _get_track_info(self):
+        self.parent.log_message("DEBUG: _get_track_info started")
+        song = self.parent._c_instance.song()
+        self.parent.log_message(f"DEBUG: got song, track count: {len(song.tracks)}")
+        tracks = []
+        for i, track in enumerate(song.tracks):
+            self.parent.log_message(f"DEBUG: processing track {i}")
+            # Handle arm property safely - Master/Return tracks don't support it
+            try:
+                arm_state = track.arm if hasattr(track, 'can_be_armed') and track.can_be_armed else False
+            except:
+                arm_state = False
+
+            track_info = {
+                "index": i,
+                "name": str(track.name) if hasattr(track, 'name') else f"Track {i}",
+                "color": track.color_index if hasattr(track, 'color_index') else 0,
+                "is_foldable": hasattr(track, 'is_foldable') and track.is_foldable,
+                "mute": track.mute if hasattr(track, 'mute') else False,
+                "solo": track.solo if hasattr(track, 'solo') else False,
+                "arm": arm_state,
+                "volume": track.mixer_device.volume.value if hasattr(track, 'mixer_device') and hasattr(track.mixer_device, 'volume') else None
+            }
+            tracks.append(track_info)
+        self.parent.log_message(f"DEBUG: processed {len(tracks)} tracks")
+        import json
+        result = [json.dumps(tracks)]
+        self.parent.log_message(f"DEBUG: JSON serialized, length: {len(result[0])}")
+        return result
 
     def _parse_osc_message(self, data: bytes) -> Tuple[str, list]:
         try:
@@ -174,12 +215,15 @@ class OSCServer:
 
         try:
             message = self._encode_osc_message(osc_addr, args)
-            self.socket.sendto(message, addr)
+            # Always send responses to localhost:11001 where the Python client listens
+            response_addr = ('127.0.0.1', 11001)
+            self.socket.sendto(message, response_addr)
+            self.parent.log_message(f"Sent response {osc_addr} to {response_addr}")
         except Exception as e:
             self.parent.log_message(f"Failed to send OSC response: {e}")
 
     def _encode_osc_message(self, address: str, args: list) -> bytes:
-        address_bytes = address.encode('utf-8')
+        address_bytes = address.encode('utf-8') + b'\x00'
         if len(address_bytes) % 4 != 0:
             address_bytes += b'\x00' * (4 - len(address_bytes) % 4)
 

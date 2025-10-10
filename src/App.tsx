@@ -118,6 +118,7 @@ function App() {
             handleTextareaInput={handleTextareaInput}
             handleSubmit={handleSubmit}
             handleProcessQuery={handleProcessQuery}
+            processQuery={processQuery}
             commands={commands}
         />;
     }

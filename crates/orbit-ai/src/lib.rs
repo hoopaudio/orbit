@@ -16,6 +16,9 @@ pub use python::bot_wrapper::PythonBotWrapper;
 pub use screenshot::ScreenshotService;
 pub use system_prompt::ORBIT_SYSTEM_PROMPT;
 
+// Re-export PyO3 for other crates to use
+pub use pyo3;
+
 #[cfg(feature = "python")]
 use pyo3::prelude::*;
 

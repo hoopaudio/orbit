@@ -136,10 +136,22 @@ impl PythonBotWrapper {
                 // Create the coroutine
                 let coro = ask_async.call1((question, api_key))?;
 
-                // Run it on the persistent event loop
-                let result = loop_obj.call_method1("run_until_complete", (coro,))?;
-
-                result.extract::<String>()
+                // Run it on the persistent event loop with timeout protection
+                match loop_obj.call_method1("run_until_complete", (coro,)) {
+                    Ok(result) => result.extract::<String>(),
+                    Err(e) => {
+                        eprintln!("Python ask error: {}", e);
+                        if let Ok(exception_type) = e.get_type(py).name() {
+                            if exception_type.contains("TimeoutError") || exception_type.contains("asyncio") {
+                                Err(PyErr::new::<pyo3::exceptions::PyTimeoutError, _>("LangGraph agent timed out"))
+                            } else {
+                                Err(e)
+                            }
+                        } else {
+                            Err(e)
+                        }
+                    }
+                }
             })
         })
         .await
@@ -169,10 +181,22 @@ impl PythonBotWrapper {
                 // Create the coroutine
                 let coro = ask_async.call1((question, image_path, api_key))?;
 
-                // Run it on the persistent event loop
-                let result = loop_obj.call_method1("run_until_complete", (coro,))?;
-
-                result.extract::<String>()
+                // Run it on the persistent event loop with timeout protection
+                match loop_obj.call_method1("run_until_complete", (coro,)) {
+                    Ok(result) => result.extract::<String>(),
+                    Err(e) => {
+                        eprintln!("Python ask_with_image error: {}", e);
+                        if let Ok(exception_type) = e.get_type(py).name() {
+                            if exception_type.contains("TimeoutError") || exception_type.contains("asyncio") {
+                                Err(PyErr::new::<pyo3::exceptions::PyTimeoutError, _>("LangGraph agent timed out"))
+                            } else {
+                                Err(e)
+                            }
+                        } else {
+                            Err(e)
+                        }
+                    }
+                }
             })
         })
         .await
@@ -213,9 +237,25 @@ impl PythonBotWrapper {
                             // Emit the chunk through Tauri
                             let _ = app_handle.emit("stream_chunk", text);
                         }
-                        Err(_) => {
-                            // StopAsyncIteration means we're done
-                            break;
+                        Err(e) => {
+                            // Check if this is a StopAsyncIteration (normal end) or a real error
+                            if let Ok(exception_type) = e.get_type(py).name() {
+                                if exception_type == "StopAsyncIteration" {
+                                    // Normal end of stream
+                                    break;
+                                } else {
+                                    // Real Python exception - log it and emit error
+                                    eprintln!("Python streaming error: {} - {}", exception_type, e);
+                                    let error_msg = format!("Streaming error: {}", e);
+                                    let _ = app_handle.emit("stream_error", error_msg);
+                                    break;
+                                }
+                            } else {
+                                // Unknown error type - treat as end of stream but log it
+                                eprintln!("Unknown Python error during streaming: {}", e);
+                                let _ = app_handle.emit("stream_error", format!("Unknown error: {}", e));
+                                break;
+                            }
                         }
                     }
                 }

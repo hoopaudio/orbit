@@ -19,3 +19,11 @@ class OrbitRemote:
     def update_display(self):
         if self._osc_server:
             self._osc_server.process_messages()
+
+    def build_midi_map(self, midi_map_handle):
+        """Required method for MIDI Remote Scripts"""
+        pass
+
+    def receive_midi(self, midi_bytes):
+        """Required method for MIDI Remote Scripts"""
+        pass

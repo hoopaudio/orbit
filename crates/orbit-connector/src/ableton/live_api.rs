@@ -67,18 +67,50 @@ pub enum LiveCommand {
     Stop,
     Record,
     SetTempo(f32),
-    SetTrackVolume { track_id: i32, volume: f32 },
-    SetTrackPan { track_id: i32, pan: f32 },
-    SetTrackMute { track_id: i32, mute: bool },
-    SetTrackSolo { track_id: i32, solo: bool },
-    ArmTrack { track_id: i32, armed: bool },
-    LaunchClip { track_id: i32, clip_id: i32 },
-    StopClip { track_id: i32, clip_id: i32 },
-    LaunchScene { scene_id: i32 },
-    SetDeviceParameter { device_id: i32, param_id: i32, value: f32 },
+    SetTrackVolume {
+        track_id: i32,
+        volume: f32,
+    },
+    SetTrackPan {
+        track_id: i32,
+        pan: f32,
+    },
+    SetTrackMute {
+        track_id: i32,
+        mute: bool,
+    },
+    SetTrackSolo {
+        track_id: i32,
+        solo: bool,
+    },
+    ArmTrack {
+        track_id: i32,
+        armed: bool,
+    },
+    LaunchClip {
+        track_id: i32,
+        clip_id: i32,
+    },
+    StopClip {
+        track_id: i32,
+        clip_id: i32,
+    },
+    LaunchScene {
+        scene_id: i32,
+    },
+    SetDeviceParameter {
+        device_id: i32,
+        param_id: i32,
+        value: f32,
+    },
     GetLiveSet,
-    GetTrack { track_id: i32 },
-    GetClip { track_id: i32, clip_id: i32 },
+    GetTrack {
+        track_id: i32,
+    },
+    GetClip {
+        track_id: i32,
+        clip_id: i32,
+    },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -13,9 +13,10 @@ use tray::Tray;
 use commands::*;
 use dotenv::dotenv;
 use orbit_ai::ScreenshotService;
+use orbit_connector::OrbitConnector;
 use std::{
     str::FromStr,
-    sync::{atomic::AtomicBool, Mutex},
+    sync::{atomic::AtomicBool, Arc, Mutex},
 };
 use tauri::{generate_handler, menu::Menu, Listener, Manager, Wry};
 use tauri_nspanel::ManagerExt;
@@ -26,6 +27,7 @@ use window::WebviewWindowExt;
 
 pub struct Pinned(AtomicBool);
 pub struct TrayMenu(Mutex<Menu<Wry>>);
+pub struct OrbitState(Arc<tokio::sync::Mutex<OrbitConnector>>);
 
 
 fn main() {
@@ -92,6 +94,7 @@ fn main() {
 
     app = app
         .manage(Pinned(AtomicBool::new(false)))
+        .manage(OrbitState(Arc::new(tokio::sync::Mutex::new(OrbitConnector::new()))))
         .setup(move |app| {
             // Set activation poicy to Accessory to prevent the app icon from showing on the dock
             app.set_activation_policy(tauri::ActivationPolicy::Accessory);
@@ -152,7 +155,12 @@ fn main() {
             hide,
             get_visible_frame,
             resize_window_for_producer_mode,
-            clear_python_memory
+            clear_python_memory,
+            connect_ableton,
+            disconnect_ableton,
+            send_ableton_command,
+            test_ableton_connection,
+            get_ableton_tracks
         ]);
 
     app.build(tauri::generate_context!())

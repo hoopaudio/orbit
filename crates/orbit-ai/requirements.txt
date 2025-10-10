@@ -2,4 +2,8 @@ google-cloud-aiplatform>=1.38.0
 google-auth>=2.23.0
 langchain>=0.1.0
 langchain-google-vertexai>=0.0.5
+langgraph>=0.2.50
+langchain-openai>=0.1.0
 asyncio
+pytesseract
+pillow

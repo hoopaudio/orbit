@@ -85,9 +85,11 @@ class LangGraphAgent:
                     project=project_id,
                     location=location,
                     temperature=0.7,
-                    max_output_tokens=2048,
+                    max_output_tokens=4096,  # Increase token limit
                     top_p=0.8,
                     top_k=40,
+                    max_retries=10,  # More retries for rate limits
+                    request_timeout=60,  # Longer timeout
                 )
                 print(f"Orbit Pro Agent initialized with Vertex AI ({model_name})")
                 self._warmup_connection()
@@ -279,7 +281,7 @@ class LangGraphAgent:
                 async for chunk in self.agent.astream(
                     {"messages": messages},
                     stream_mode="updates",
-                    config={"recursion_limit": 100}  # Increase limit for complex mixing tasks
+                    config={"recursion_limit": 50}  # Lower limit to prevent infinite loops
                 ):
                     # Check for agent updates
                     if "agent" in chunk:
@@ -314,7 +316,7 @@ class LangGraphAgent:
                         tool_messages = chunk["tools"].get("messages", [])
                         for msg in tool_messages:
                             if hasattr(msg, 'content'):
-                                yield f"→ {msg.content}\n\n"
+                                yield f"→ {msg.content}\n\n&nbsp;\n\n&nbsp;\n\n"
 
                 # Update conversation history
                 if full_response:

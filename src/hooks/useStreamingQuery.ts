@@ -11,7 +11,7 @@ export const useStreamingQuery = () => {
     const [history, setHistory] = useState<Message[]>([]);
     const [isLoading, setIsLoading] = useState(false);
 
-    const processQuery = async (query: string) => {
+    const processQuery = async (query: string, selectedTracks?: any[]) => {
         if (!query.trim()) return;
 
         setIsLoading(true);
@@ -35,9 +35,26 @@ export const useStreamingQuery = () => {
         });
 
         try {
+            // Prepare track context if provided
+            const trackContext = selectedTracks && selectedTracks.length > 0
+                ? JSON.stringify(selectedTracks.map(track => ({
+                    index: track.index,
+                    name: track.name,
+                    mute: track.mute,
+                    solo: track.solo,
+                    arm: track.arm
+                })))
+                : undefined;
+
             // Use Python streaming implementation
             console.log("Calling process_query_python_stream with query:", query);
-            await invoke("process_query_python_stream", { query });
+            if (trackContext) {
+                console.log("Including track context:", trackContext);
+            }
+            await invoke("process_query_python_stream", {
+                query,
+                selected_tracks: trackContext
+            });
         } catch (error) {
             console.error("Error calling process_query_python_stream:", error);
             setHistory(prev => {

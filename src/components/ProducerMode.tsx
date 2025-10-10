@@ -5,6 +5,17 @@ import { InputField } from './InputField';
 import { ResponseDisplay } from './ResponseDisplay';
 import { Message } from '../hooks/useStreamingQuery';
 import { AutoCompleteMenu, Command } from './AutoCompleteMenu';
+import { TrackSelector } from './TrackSelector';
+
+interface Track {
+    index: number;
+    name: string;
+    color: number;
+    is_foldable: boolean;
+    mute: boolean;
+    solo: boolean;
+    arm: boolean;
+}
 
 interface ProducerModeProps {
     inputRef: React.RefObject<HTMLTextAreaElement>;
@@ -14,13 +25,14 @@ interface ProducerModeProps {
     handleTextareaInput: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
     handleSubmit: (e: React.FormEvent) => void;
     handleProcessQuery: (query: string) => void;
+    processQuery?: (query: string, selectedTracks?: any[]) => Promise<void>;
     commands: Command[];
 }
 
-const ChannelPill = ({ name }: { name: string }) => (
+const ChannelPill = ({ track, onRemove }: { track: Track; onRemove: (track: Track) => void }) => (
     <div className="channel-pill">
-        <span>{name}</span>
-        <button className="remove-channel-btn">&times;</button>
+        <span>{track.name}</span>
+        <button className="remove-channel-btn" onClick={() => onRemove(track)}>&times;</button>
     </div>
 );
 
@@ -30,13 +42,16 @@ export const ProducerMode: React.FC<ProducerModeProps> = ({
     history,
     isLoading,
     handleTextareaInput,
-    handleSubmit,
-    handleProcessQuery,
+    handleSubmit: originalHandleSubmit,
+    handleProcessQuery: originalHandleProcessQuery,
+    processQuery,
     commands,
 }) => {
     const [suggestions, setSuggestions] = useState<Command[]>([]);
     const [isMenuVisible, setIsMenuVisible] = useState(false);
     const [selectedIndex, setSelectedIndex] = useState(-1);
+    const [selectedTracks, setSelectedTracks] = useState<Track[]>([]);
+    const [isTrackSelectorOpen, setIsTrackSelectorOpen] = useState(false);
 
     // Reset selected index when menu visibility changes or suggestions change
     useEffect(() => {
@@ -59,7 +74,7 @@ export const ProducerMode: React.FC<ProducerModeProps> = ({
 
         if (shouldSubmit) {
             // Execute the command IMMEDIATELY, don't wait
-            handleProcessQuery(commandName);
+            handleProcessQueryWithTracks(commandName);
         }
     };
 
@@ -94,12 +109,41 @@ export const ProducerMode: React.FC<ProducerModeProps> = ({
             }
         } else if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
-            handleSubmit(e);
+            handleSubmitWithTracks(e);
         }
     };
 
-    // Dummy data for now
-    const channels = ["Master", "Drums", "Bass", "Vocals"];
+    const handleTracksSelected = (tracks: Track[]) => {
+        setSelectedTracks(tracks);
+    };
+
+    const handleRemoveTrack = (trackToRemove: Track) => {
+        setSelectedTracks(prev => prev.filter(track => track.index !== trackToRemove.index));
+    };
+
+    const handleOpenTrackSelector = () => {
+        setIsTrackSelectorOpen(true);
+    };
+
+    const handleCloseTrackSelector = () => {
+        setIsTrackSelectorOpen(false);
+    };
+
+    // Enhanced query processing that includes track context
+    const handleProcessQueryWithTracks = (queryString: string) => {
+        if (processQuery) {
+            // Use the direct processQuery function with track context
+            processQuery(queryString, selectedTracks);
+        } else {
+            // Fallback to original function (for command handling like /producer, /standard)
+            originalHandleProcessQuery(queryString);
+        }
+    };
+
+    const handleSubmitWithTracks = (e: React.FormEvent) => {
+        e.preventDefault();
+        handleProcessQueryWithTracks(query);
+    };
 
     return (
         <div className="producer-mode-container">
@@ -108,13 +152,15 @@ export const ProducerMode: React.FC<ProducerModeProps> = ({
                     <ResponseDisplay history={history} isLoading={isLoading} isProducerMode={true} />
                 </div>
                 <div className="context-section">
-                    <button className="add-channel-btn">@</button>
+                    <button className="add-channel-btn" onClick={handleOpenTrackSelector}>@</button>
                     <div className="channels-list">
-                        {channels.map(channel => <ChannelPill key={channel} name={channel} />)}
+                        {selectedTracks.map(track =>
+                            <ChannelPill key={track.index} track={track} onRemove={handleRemoveTrack} />
+                        )}
                     </div>
                 </div>
                 <div className="producer-prompt-section">
-                    <form className="producer-form" onSubmit={handleSubmit}>
+                    <form className="producer-form" onSubmit={handleSubmitWithTracks}>
                         <div className="input-wrapper">
                             <div className="warm-background"></div>
                             <div className="glass-layer"></div>
@@ -135,6 +181,16 @@ export const ProducerMode: React.FC<ProducerModeProps> = ({
                     {isMenuVisible && <AutoCompleteMenu commands={suggestions} onSelect={handleSelectCommand} selectedIndex={selectedIndex} position="top" />}
                 </div>
             </div>
+            {isTrackSelectorOpen && (
+                <>
+                    <div className="track-selector-overlay" onClick={handleCloseTrackSelector}></div>
+                    <TrackSelector
+                        onTracksSelected={handleTracksSelected}
+                        selectedTracks={selectedTracks}
+                        onClose={handleCloseTrackSelector}
+                    />
+                </>
+            )}
         </div>
     );
 };

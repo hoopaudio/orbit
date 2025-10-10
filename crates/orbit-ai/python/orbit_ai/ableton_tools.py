@@ -6,12 +6,66 @@ import sys
 import os
 import subprocess
 import base64
+import math
 from typing import Annotated
 from langchain_core.tools import tool
 
 # Add orbit-connector to path so we can import the OSC client
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../../../orbit-connector/src/python'))
+sys.path.insert(
+    0, os.path.join(os.path.dirname(__file__), "../../../orbit-connector/src/python")
+)
 from ableton_client import get_ableton_client
+
+
+# Conversion functions for volume levels
+def linear_to_db(linear_value: float) -> float:
+    """Convert linear volume (0.0-1.0) to dB. Uses standard 20*log10 conversion."""
+    if linear_value <= 0.0:
+        return -float("inf")  # -infinity dB for silence
+
+    # Standard conversion: 20*log10(linear_value)
+    # 1.0 linear = 0dB (unity gain)
+    # 0.5 linear = -6dB
+    # 0.1 linear = -20dB
+    db = 20.0 * math.log10(linear_value)
+    return max(-70.0, db)  # Clamp to minimum of -70dB for practical purposes
+
+
+def db_to_linear(db_value: float) -> float:
+    """Convert dB to linear volume (0.0-1.0) for setting track volumes."""
+    if db_value <= -70.0:
+        return 0.0  # Anything below -70dB is effectively silence
+
+    # Standard conversion: 10^(dB/20)
+    # 0dB = 1.0 linear (unity gain)
+    # -6dB = 0.5 linear
+    # -20dB = 0.1 linear
+    linear = 10.0 ** (db_value / 20.0)
+    return min(1.0, linear)  # Clamp to maximum of 1.0 for the 0.0-1.0 range
+
+
+# Conversion Tools
+@tool
+def convert_volume_to_db(
+    linear_volume: Annotated[float, "Linear volume value (0.0-1.0)"],
+) -> str:
+    """Convert a linear volume value (0.0-1.0) to decibels (dB) for user communication."""
+    if linear_volume < 0.0 or linear_volume > 1.0:
+        return f"Invalid volume value: {linear_volume}. Must be between 0.0 and 1.0"
+
+    db_value = linear_to_db(linear_volume)
+    if db_value == -float("inf"):
+        return "-∞ dB (silence)"
+    return f"{db_value:.1f} dB"
+
+
+@tool
+def convert_db_to_volume(
+    db_value: Annotated[float, "Decibel value (typically -70dB to +6dB)"],
+) -> str:
+    """Convert a dB value to linear volume (0.0-1.0) for setting track levels."""
+    linear_value = db_to_linear(db_value)
+    return f"Linear volume: {linear_value:.3f} (for {db_value:.1f} dB)"
 
 
 # Transport Controls
@@ -32,7 +86,9 @@ def stop_ableton() -> str:
 
 
 @tool
-def set_tempo(bpm: Annotated[float, "The tempo in beats per minute (20-999 BPM)"]) -> str:
+def set_tempo(
+    bpm: Annotated[float, "The tempo in beats per minute (20-999 BPM)"],
+) -> str:
     """Set the tempo/BPM in Ableton Live"""
     if bpm < 20 or bpm > 999:
         return f"Tempo must be between 20 and 999 BPM (got {bpm})"
@@ -46,7 +102,7 @@ def set_tempo(bpm: Annotated[float, "The tempo in beats per minute (20-999 BPM)"
 @tool
 def set_track_volume(
     track_id: Annotated[int, "The track number (0-based index)"],
-    volume: Annotated[float, "Volume level from 0.0 (silent) to 1.0 (full volume)"]
+    volume: Annotated[float, "Volume level from 0.0 (silent) to 1.0 (full volume)"],
 ) -> str:
     """Set the volume of a specific track in Ableton Live"""
     if volume < 0.0 or volume > 1.0:
@@ -54,11 +110,20 @@ def set_track_volume(
 
     client = get_ableton_client()
     success = client.set_track_volume(track_id, volume)
-    return f"Set track {track_id} volume to {volume:.2f}" if success else f"Failed to set track {track_id} volume"
+    if success:
+        db_value = linear_to_db(volume)
+        if db_value == -float("inf"):
+            return f"Set track {track_id} volume to silence (-∞ dB)"
+        else:
+            return f"Set track {track_id} volume to {db_value:.1f} dB"
+    else:
+        return f"Failed to set track {track_id} volume"
 
 
 @tool
-def mute_track(track_id: Annotated[int, "The track number to mute (0-based index)"]) -> str:
+def mute_track(
+    track_id: Annotated[int, "The track number to mute (0-based index)"],
+) -> str:
     """Mute a specific track in Ableton Live"""
     client = get_ableton_client()
     success = client.mute_track(track_id, mute=True)
@@ -66,15 +131,21 @@ def mute_track(track_id: Annotated[int, "The track number to mute (0-based index
 
 
 @tool
-def unmute_track(track_id: Annotated[int, "The track number to unmute (0-based index)"]) -> str:
+def unmute_track(
+    track_id: Annotated[int, "The track number to unmute (0-based index)"],
+) -> str:
     """Unmute a specific track in Ableton Live"""
     client = get_ableton_client()
     success = client.mute_track(track_id, mute=False)
-    return f"Unmuted track {track_id}" if success else f"Failed to unmute track {track_id}"
+    return (
+        f"Unmuted track {track_id}" if success else f"Failed to unmute track {track_id}"
+    )
 
 
 @tool
-def solo_track(track_id: Annotated[int, "The track number to solo (0-based index)"]) -> str:
+def solo_track(
+    track_id: Annotated[int, "The track number to solo (0-based index)"],
+) -> str:
     """Solo a specific track in Ableton Live"""
     client = get_ableton_client()
     success = client.solo_track(track_id, solo=True)
@@ -82,47 +153,75 @@ def solo_track(track_id: Annotated[int, "The track number to solo (0-based index
 
 
 @tool
-def unsolo_track(track_id: Annotated[int, "The track number to unsolo (0-based index)"]) -> str:
+def unsolo_track(
+    track_id: Annotated[int, "The track number to unsolo (0-based index)"],
+) -> str:
     """Unsolo a specific track in Ableton Live"""
     client = get_ableton_client()
     success = client.solo_track(track_id, solo=False)
-    return f"Unsoloed track {track_id}" if success else f"Failed to unsolo track {track_id}"
+    return (
+        f"Unsoloed track {track_id}"
+        if success
+        else f"Failed to unsolo track {track_id}"
+    )
 
 
 @tool
-def arm_track(track_id: Annotated[int, "The track number to arm for recording (0-based index)"]) -> str:
+def arm_track(
+    track_id: Annotated[int, "The track number to arm for recording (0-based index)"],
+) -> str:
     """Arm a track for recording in Ableton Live"""
     client = get_ableton_client()
     success = client.arm_track(track_id, arm=True)
-    return f"Armed track {track_id} for recording" if success else f"Failed to arm track {track_id}"
+    return (
+        f"Armed track {track_id} for recording"
+        if success
+        else f"Failed to arm track {track_id}"
+    )
 
 
 @tool
-def disarm_track(track_id: Annotated[int, "The track number to disarm (0-based index)"]) -> str:
+def disarm_track(
+    track_id: Annotated[int, "The track number to disarm (0-based index)"],
+) -> str:
     """Disarm a track from recording in Ableton Live"""
     client = get_ableton_client()
     success = client.arm_track(track_id, arm=False)
-    return f"Disarmed track {track_id}" if success else f"Failed to disarm track {track_id}"
+    return (
+        f"Disarmed track {track_id}"
+        if success
+        else f"Failed to disarm track {track_id}"
+    )
 
 
 # Clip and Scene Controls
 @tool
 def launch_clip(
     track_id: Annotated[int, "The track number (0-based index)"],
-    clip_slot: Annotated[int, "The clip slot number (0-based index)"]
+    clip_slot: Annotated[int, "The clip slot number (0-based index)"],
 ) -> str:
     """Launch a specific clip in Ableton Live"""
     client = get_ableton_client()
     success = client.launch_clip(track_id, clip_slot)
-    return f"Launched clip in track {track_id}, slot {clip_slot}" if success else f"Failed to launch clip"
+    return (
+        f"Launched clip in track {track_id}, slot {clip_slot}"
+        if success
+        else f"Failed to launch clip"
+    )
 
 
 @tool
-def launch_scene(scene_id: Annotated[int, "The scene number to launch (0-based index)"]) -> str:
+def launch_scene(
+    scene_id: Annotated[int, "The scene number to launch (0-based index)"],
+) -> str:
     """Launch/trigger a specific scene in Ableton Live"""
     client = get_ableton_client()
     success = client.launch_scene(scene_id)
-    return f"Launched scene {scene_id}" if success else f"Failed to launch scene {scene_id}"
+    return (
+        f"Launched scene {scene_id}"
+        if success
+        else f"Failed to launch scene {scene_id}"
+    )
 
 
 @tool
@@ -141,6 +240,38 @@ def get_live_info() -> str:
         return result
     else:
         return "Failed to get Live session info. Make sure Ableton Live is running and the OrbitRemote script is loaded."
+
+
+@tool
+def get_track_names() -> str:
+    """Get a list of all track names and their properties from the Ableton Live session"""
+    client = get_ableton_client()
+    tracks = client.get_track_names()
+
+    if tracks:
+        result = "Ableton Live Tracks:\n"
+        for track in tracks:
+            index = track.get("index", "?")
+            name = track.get("name", "Unnamed")
+            mute = track.get("mute", False)
+            solo = track.get("solo", False)
+            arm = track.get("arm", False)
+
+            # Add volume information in dB if available
+            volume_info = ""
+            linear_vol = track.get("volume")
+            if linear_vol is not None and isinstance(linear_vol, (int, float)):
+                db_vol = linear_to_db(float(linear_vol))
+                if db_vol == -float("inf"):
+                    volume_info = " [Vol: -∞ dB]"
+                else:
+                    volume_info = f" [Vol: {db_vol:.1f} dB]"
+
+            result += f"  • Track {index}: {name}{volume_info} {mute}{solo}{arm}\n"
+
+        return result.rstrip()
+    else:
+        return "Failed to get track names. Make sure Ableton Live is running and the OrbitRemote script is loaded."
 
 
 # Screenshot tool for seeing the DAW
@@ -162,9 +293,7 @@ def take_screenshot() -> str:
         if system == "Darwin":  # macOS
             # Use screencapture command
             result = subprocess.run(
-                ["screencapture", "-x", screenshot_path],
-                capture_output=True,
-                text=True
+                ["screencapture", "-x", screenshot_path], capture_output=True, text=True
             )
             if result.returncode != 0:
                 return f"Failed to capture screenshot: {result.stderr}"
@@ -183,9 +312,7 @@ def take_screenshot() -> str:
             $bitmap.Dispose()
             """
             result = subprocess.run(
-                ["powershell", "-Command", ps_script],
-                capture_output=True,
-                text=True
+                ["powershell", "-Command", ps_script], capture_output=True, text=True
             )
             if result.returncode != 0:
                 return f"Failed to capture screenshot: {result.stderr}"
@@ -226,7 +353,11 @@ def take_screenshot() -> str:
 
             img = Image.open(screenshot_path)
             ocr_text = pytesseract.image_to_string(img)
-            ocr_info = f"\n\nExtracted text from screen:\n{ocr_text[:500]}..." if len(ocr_text) > 500 else f"\n\nExtracted text from screen:\n{ocr_text}"
+            ocr_info = (
+                f"\n\nExtracted text from screen:\n{ocr_text[:500]}..."
+                if len(ocr_text) > 500
+                else f"\n\nExtracted text from screen:\n{ocr_text}"
+            )
         except ImportError:
             ocr_info = "\n\n(OCR not available - install pytesseract and Pillow for text extraction)"
         except Exception as e:
@@ -240,6 +371,8 @@ def take_screenshot() -> str:
 
 # Collect all tools for easy import
 ABLETON_TOOLS = [
+    convert_volume_to_db,
+    convert_db_to_volume,
     play_ableton,
     stop_ableton,
     set_tempo,
@@ -253,5 +386,6 @@ ABLETON_TOOLS = [
     launch_clip,
     launch_scene,
     get_live_info,
+    get_track_names,
     take_screenshot,
 ]

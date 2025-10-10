@@ -12,7 +12,7 @@ class OrbitProAgent(LangGraphAgent):
     pass
 
 
-# Factory function to create agent instance
+# Factory function to create agent instancae
 def create_agent(api_key: Optional[str] = None) -> OrbitProAgent:
     """Create a new instance of the Orbit Pro Agent."""
     return OrbitProAgent(api_key)
