@@ -56,6 +56,9 @@ class AbletonOSCClient:
                 self.responses[address] = args
                 if address in self.response_events:
                     self.response_events[address].set()
+                    print(f"DEBUG: Signaled event for {address}")
+                else:
+                    print(f"DEBUG: No event waiting for {address}")
 
                 # Log for debugging
                 print(f"Received OSC response: {address} {args}")
@@ -84,11 +87,11 @@ class AbletonOSCClient:
             values = []
             for tag in type_tags_str[1:]:  # Skip the comma
                 if tag == 'i':
-                    value = struct.unpack('>i', data[idx:idx+4])[0]
+                    value = struct.unpack('>i', data[idx:idx + 4])[0]
                     values.append(value)
                     idx += 4
                 elif tag == 'f':
-                    value = struct.unpack('>f', data[idx:idx+4])[0]
+                    value = struct.unpack('>f', data[idx:idx + 4])[0]
                     values.append(value)
                     idx += 4
                 elif tag == 's':
@@ -151,7 +154,7 @@ class AbletonOSCClient:
             return False
 
     def send_and_wait_for_response(self, address: str, args: Optional[List[Union[int, float, str]]] = None,
-                                   response_address: str = None, timeout: float = 2.0) -> Optional[Any]:
+                                   response_address: str = None, timeout: float = 5.0) -> Optional[Any]:
         """Send an OSC message and wait for a response"""
         if response_address is None:
             response_address = address + "/response"
@@ -318,6 +321,7 @@ class AsyncAbletonOSCClient(AbletonOSCClient):
 _global_client: Optional[AbletonOSCClient] = None
 _client_lock = threading.Lock()
 
+
 def get_ableton_client() -> AbletonOSCClient:
     """Get or create the global Ableton OSC client"""
     global _global_client
@@ -333,6 +337,7 @@ def get_ableton_client() -> AbletonOSCClient:
             # Return the async client since it inherits from sync client
             return _global_client
         return _global_client
+
 
 def get_async_ableton_client() -> AsyncAbletonOSCClient:
     """Get or create the global async Ableton OSC client"""

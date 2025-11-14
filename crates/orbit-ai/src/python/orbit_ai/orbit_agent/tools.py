@@ -14,7 +14,7 @@ from pydantic import BaseModel, Field
 
 # Add orbit-connector to path so we can import the OSC client
 current_dir = os.path.dirname(os.path.abspath(__file__))
-orbit_connector_path = os.path.join(current_dir, "..", "..", "..", "..", "orbit-connector", "src", "python")
+orbit_connector_path = os.path.join(current_dir, "..", "..", "..", "..", "..", "orbit-connector", "src", "python")
 orbit_connector_path = os.path.abspath(orbit_connector_path)
 
 if orbit_connector_path not in sys.path:

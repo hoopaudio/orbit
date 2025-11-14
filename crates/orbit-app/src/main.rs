@@ -4,13 +4,14 @@
 )]
 
 mod commands;
+#[cfg(test)]
+mod commands_test;
 mod consts;
 mod tray;
 mod window;
 
-use consts::{MAIN_WINDOW_NAME, ORBIT_LABEL, SETTINGS_WINDOW_NAME};
-use tray::Tray;
 use commands::*;
+use consts::{MAIN_WINDOW_NAME, ORBIT_LABEL, SETTINGS_WINDOW_NAME};
 use dotenv::dotenv;
 use orbit_ai::ScreenshotService;
 use orbit_connector::OrbitConnector;
@@ -23,12 +24,12 @@ use tauri_nspanel::ManagerExt;
 use tauri_plugin_global_shortcut::{Code, Modifiers, Shortcut, ShortcutState};
 use tauri_plugin_log::{Target, TargetKind};
 use tauri_plugin_window_state::{AppHandleExt, StateFlags};
+use tray::Tray;
 use window::WebviewWindowExt;
 
 pub struct Pinned(AtomicBool);
 pub struct TrayMenu(Mutex<Menu<Wry>>);
 pub struct OrbitState(Arc<tokio::sync::Mutex<OrbitConnector>>);
-
 
 fn main() {
     // Load environment variables from .env file
@@ -94,13 +95,12 @@ fn main() {
 
     app = app
         .manage(Pinned(AtomicBool::new(false)))
-        .manage(OrbitState(Arc::new(tokio::sync::Mutex::new(OrbitConnector::new()))))
+        .manage(OrbitState(Arc::new(tokio::sync::Mutex::new(
+            OrbitConnector::new(),
+        ))))
         .setup(move |app| {
             // Set activation poicy to Accessory to prevent the app icon from showing on the dock
             app.set_activation_policy(tauri::ActivationPolicy::Accessory);
-
-            // Initialize Python bot at startup to avoid cold start delays on first query
-            commands::initialize_python_bot();
 
             let handle = app.app_handle();
 
@@ -145,22 +145,18 @@ fn main() {
             open_devtools,
             close_settings,
             open_settings,
-            process_query,
-            process_query_stream,
-            process_query_python,
-            process_query_python_stream,
             resize_window,
             resize_and_reposition_for_standard_mode,
             show,
             hide,
             get_visible_frame,
             resize_window_for_producer_mode,
-            clear_python_memory,
             connect_ableton,
             disconnect_ableton,
             send_ableton_command,
             test_ableton_connection,
-            get_ableton_tracks
+            get_ableton_tracks,
+            ask_orbit
         ]);
 
     app.build(tauri::generate_context!())

@@ -8,23 +8,29 @@ version = "0.1.0"
 description = "Python bindings for Orbit AI with LangChain integration"
 authors = [{name = "Orbit Team"}]
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.11"
 classifiers = [
     "Programming Language :: Rust",
     "Programming Language :: Python :: Implementation :: CPython",
-    "Programming Language :: Python :: 3.9",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
 ]
 dependencies = [
+    "google-auth>=2.41.1",
+    "google-cloud-aiplatform>=1.121.0",
     "langchain>=0.2.0",
     "langchain-community>=0.2.0",
+    "langchain-litellm>=0.2.3",
+    "langgraph>=1.0.0",
     "openai>=1.0.0",
+    "pytesseract>=0.3.13",
     "pytest>=8.4.2",
 ]
 
+[project.entry-points."nat.components"]
+orbit_ai = "orbit_ai.nemo_ableton_tools"
+
 [tool.maturin]
 features = ["python"]
-python-source = "python"
+python-source = "src/python"
 module-name = "orbit_ai.orbit_ai"

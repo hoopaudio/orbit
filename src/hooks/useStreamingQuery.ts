@@ -1,6 +1,9 @@
+// TODO: Refactor to avoid double storage of conversation history
+// The server maintains conversation history, but we also store it here for UI display
+// Consider fetching history from server or finding a better pattern
+
 import {useState} from 'react';
 import {invoke} from "@tauri-apps/api/core";
-import {listen} from "@tauri-apps/api/event";
 
 export interface Message {
     speaker: 'user' | 'ai';
@@ -11,61 +14,42 @@ export const useStreamingQuery = () => {
     const [history, setHistory] = useState<Message[]>([]);
     const [isLoading, setIsLoading] = useState(false);
 
-    const processQuery = async (query: string, selectedTracks?: any[]) => {
+    const askOrbit = async (query: string, selectedTracks?: any[]) => {
         if (!query.trim()) return;
 
         setIsLoading(true);
         const newUserMessage: Message = { speaker: 'user', text: query };
-        setHistory(prev => [...prev, newUserMessage, { speaker: 'ai', text: '' }]);
-
-        // Set up event listeners for streaming
-        const unlistenChunk = await listen<string>('stream_chunk', (event) => {
-            setHistory(prev => {
-                const lastMessage = prev[prev.length - 1];
-                const updatedLastMessage = { ...lastMessage, text: lastMessage.text + event.payload };
-                return [...prev.slice(0, -1), updatedLastMessage];
-            });
-        });
-
-        const unlistenDone = await listen('stream_done', () => {
-            setIsLoading(false);
-            // Clean up listeners
-            unlistenChunk();
-            unlistenDone();
-        });
+        setHistory(prev => [...prev, newUserMessage]);
 
         try {
-            // Prepare track context if provided
-            const trackContext = selectedTracks && selectedTracks.length > 0
-                ? JSON.stringify(selectedTracks.map(track => ({
-                    index: track.index,
-                    name: track.name,
-                    mute: track.mute,
-                    solo: track.solo,
-                    arm: track.arm
-                })))
-                : undefined;
-
-            // Use Python streaming implementation
-            console.log("Calling process_query_python_stream with query:", query);
-            if (trackContext) {
-                console.log("Including track context:", trackContext);
+            // Build the query with track context if provided
+            let fullQuery = query;
+            if (selectedTracks && selectedTracks.length > 0) {
+                const trackInfo = selectedTracks.map(track =>
+                    `Track ${track.index}: ${track.name} (mute: ${track.mute}, solo: ${track.solo}, arm: ${track.arm})`
+                ).join('\n');
+                fullQuery = `Context - Selected tracks:\n${trackInfo}\n\nQuery: ${query}`;
             }
-            await invoke("process_query_python_stream", {
-                query,
-                selected_tracks: trackContext
+
+            // Call the ask_orbit command
+            console.log("Calling ask_orbit with query:", fullQuery);
+            const response = await invoke<string>("ask_orbit", {
+                message: fullQuery
             });
+
+            // Add the AI response to history (keeping for UI display)
+            // TODO: Refactor to avoid double storage with server-side history
+            const aiMessage: Message = { speaker: 'ai', text: response };
+            setHistory(prev => [...prev, aiMessage]);
         } catch (error) {
-            console.error("Error calling process_query_python_stream:", error);
-            setHistory(prev => {
-                const lastMessage = prev[prev.length - 1];
-                const updatedLastMessage = { ...lastMessage, text: String(error) };
-                return [...prev.slice(0, -1), updatedLastMessage];
-            });
+            console.error("Error calling ask_orbit:", error);
+            const errorMessage: Message = {
+                speaker: 'ai',
+                text: `Error: ${error}`
+            };
+            setHistory(prev => [...prev, errorMessage]);
+        } finally {
             setIsLoading(false);
-            // Clean up listeners on error
-            unlistenChunk();
-            unlistenDone();
         }
     };
 
@@ -74,6 +58,6 @@ export const useStreamingQuery = () => {
         setHistory,
         isLoading,
         setIsLoading,
-        processQuery
+        askOrbit
     };
 };

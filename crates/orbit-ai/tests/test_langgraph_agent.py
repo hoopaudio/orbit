@@ -4,15 +4,14 @@ Unit tests for LangGraph agent implementation
 
 import pytest
 import pytest_asyncio
-import asyncio
-from unittest.mock import Mock, patch, AsyncMock, MagicMock
+from unittest.mock import patch, AsyncMock, MagicMock
 from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
 
 # Import the module to test
 import sys
 import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../python'))
-from orbit_ai.langgraph_agent import LangGraphAgent
+from orbit_ai import LangGraphAgent
 
 
 class TestLangGraphAgent:

@@ -4,7 +4,6 @@ Tests for orbit-ai Python bindings
 
 import pytest
 import orbit_ai
-import os
 
 
 def test_import():

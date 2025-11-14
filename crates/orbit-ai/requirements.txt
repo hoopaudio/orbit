@@ -4,6 +4,8 @@ langchain>=0.1.0
 langchain-google-vertexai>=0.0.5
 langgraph>=0.2.50
 langchain-openai>=0.1.0
+nvidia-nat-mem0ai>=1.2.0
 asyncio
 pytesseract
 pillow
+aiohttp>=3.8.0

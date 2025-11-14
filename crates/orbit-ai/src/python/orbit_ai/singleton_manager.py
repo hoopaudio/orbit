@@ -5,7 +5,7 @@ This solves the lifetime issues with PyO3 by keeping the Python object alive.
 
 import asyncio
 from typing import Optional
-from orbit_ai.orbit_agent import NeMoAgent
+from orbit_ai import NeMoAgent
 
 
 class BotSingleton:

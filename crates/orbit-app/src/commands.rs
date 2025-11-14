@@ -1,5 +1,5 @@
 use crate::{consts::*, OrbitState, Pinned, TrayMenu};
-use orbit_ai::{LangChainChatBot, PythonBotWrapper};
+use orbit_ai::OrbitAgent;
 use orbit_core::{AbletonCommand, AbletonControlResponse, OrbitMessage};
 use std::{
     ops::Deref,
@@ -7,24 +7,6 @@ use std::{
 };
 use tauri::{image::Image, menu::Menu, AppHandle, Emitter, Manager, State, WebviewWindow, Wry};
 use tauri_nspanel::ManagerExt;
-
-/// Initialize the Python bot at startup to avoid cold start delays
-pub fn initialize_python_bot() {
-    println!("Initializing Python bot at startup...");
-
-    // Spawn a background task to initialize the bot
-    std::thread::spawn(|| {
-        match PythonBotWrapper::initialize() {
-            Ok(_) => {
-                println!("Python bot successfully warmed up at startup");
-            }
-            Err(e) => {
-                eprintln!("Failed to initialize Python bot at startup: {}", e);
-                // Non-fatal - will retry on first query
-            }
-        }
-    });
-}
 
 #[tauri::command]
 pub fn show(app_handle: AppHandle) {
@@ -159,107 +141,6 @@ pub fn update_tray_icon(app: &AppHandle, pinned: bool) {
     if let Some(tray) = app.tray_by_id(ORBIT) {
         if let Ok(icon) = Image::from_bytes(icon_bytes) {
             tray.set_icon(Some(icon));
-        }
-    }
-}
-
-#[tauri::command]
-pub async fn process_query(query: String, app_handle: AppHandle) -> Result<String, String> {
-    let orbit_agent = LangChainChatBot::new(app_handle).map_err(|e| e.to_string())?;
-
-    orbit_agent
-        .ask_orbit(&query)
-        .await
-        .map_err(|e| e.to_string())
-}
-
-#[tauri::command]
-pub async fn process_query_stream(query: String, app_handle: AppHandle) -> Result<(), String> {
-    let chatbot = LangChainChatBot::new(app_handle.clone()).map_err(|e| e.to_string())?;
-
-    chatbot
-        .ask_orbit_stream(&query, app_handle)
-        .await
-        .map_err(|e: anyhow::Error| e.to_string())
-}
-
-#[tauri::command]
-pub async fn process_query_python(query: String) -> Result<String, String> {
-    println!("process_query_python called with query: {}", query);
-
-    // Create a lightweight wrapper - the Python singleton handles the actual instance
-    let bot =
-        PythonBotWrapper::new().map_err(|e| format!("Failed to create bot wrapper: {}", e))?;
-
-    match bot.ask_orbit(&query).await {
-        Ok(response) => {
-            println!("Got response from Python bot: {}", response);
-            Ok(response)
-        }
-        Err(e) => {
-            let error_msg = format!("Failed to get response from Python bot: {}", e);
-            println!("{}", error_msg);
-            Err(error_msg)
-        }
-    }
-}
-
-#[tauri::command]
-pub async fn process_query_python_stream(
-    query: String,
-    app_handle: AppHandle,
-    selected_tracks: Option<String>,
-) -> Result<(), String> {
-    println!("process_query_python_stream called with query: {}", query);
-
-    // Create a lightweight wrapper - reuses the Python singleton
-    let bot =
-        PythonBotWrapper::new().map_err(|e| format!("Failed to create bot wrapper: {}", e))?;
-
-    // Prepare the query with track context if provided
-    let enhanced_query = if let Some(tracks_json) = selected_tracks {
-        if !tracks_json.is_empty() && tracks_json != "[]" {
-            format!(
-                "Context: I'm working with these tracks: {}\n\nQuery: {}",
-                tracks_json, query
-            )
-        } else {
-            query
-        }
-    } else {
-        query
-    };
-
-    // Stream the response
-    match bot.ask_orbit_stream(&enhanced_query, app_handle).await {
-        Ok(_) => {
-            println!("Streaming completed successfully");
-            Ok(())
-        }
-        Err(e) => {
-            let error_msg = format!("Failed to stream response: {}", e);
-            println!("{}", error_msg);
-            Err(error_msg)
-        }
-    }
-}
-
-#[tauri::command]
-pub async fn clear_python_memory() -> Result<String, String> {
-    println!("Clearing Python bot memory");
-
-    let bot =
-        PythonBotWrapper::new().map_err(|e| format!("Failed to create bot wrapper: {}", e))?;
-
-    match bot.clear_memory().await {
-        Ok(response) => {
-            println!("Memory cleared: {}", response);
-            Ok(response)
-        }
-        Err(e) => {
-            let error_msg = format!("Failed to clear memory: {}", e);
-            println!("{}", error_msg);
-            Err(error_msg)
         }
     }
 }
@@ -740,4 +621,13 @@ pub async fn get_ableton_tracks() -> Result<String, String> {
             Err(error_msg)
         }
     }
+}
+
+#[tauri::command]
+pub async fn ask_orbit(message: &str) -> Result<String, String> {
+    let agent = OrbitAgent::new().map_err(|e| format!("Failed to create OrbitAgent: {}", e))?;
+    agent
+        .run(message, Some("thread-1"))
+        .await
+        .map_err(|e| format!("Agent run failed: {}", e))
 }

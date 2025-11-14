@@ -15,7 +15,7 @@ function App() {
     const containerRef = useRef<HTMLDivElement>(null);
 
     const {query, handleTextareaInput, setQuery} = useTextareaResize();
-    const {history, isLoading, processQuery, setHistory, setIsLoading} = useStreamingQuery();
+    const {history, isLoading, askOrbit, setHistory, setIsLoading} = useStreamingQuery();
 
     const commands: Command[] = [
         {name: "/producer", description: "Toggle Producer Mode"},
@@ -41,13 +41,8 @@ function App() {
                 setHistory([]);
                 resetInput();
 
-                // Also clear the Python bot's memory
-                try {
-                    await invoke("clear_python_memory");
-                    console.log("Python memory cleared");
-                } catch (error) {
-                    console.error("Failed to clear Python memory:", error);
-                }
+                // Note: Memory clearing might need to be handled differently with ask_orbit
+                // TODO: Implement memory clearing if needed for OrbitAgent
             }
         };
 
@@ -100,7 +95,7 @@ function App() {
             resetInput();
             return;
         }
-        processQuery(queryString);
+        askOrbit(queryString);
         resetInput();
     };
 
@@ -118,7 +113,7 @@ function App() {
             handleTextareaInput={handleTextareaInput}
             handleSubmit={handleSubmit}
             handleProcessQuery={handleProcessQuery}
-            processQuery={processQuery}
+            askOrbit={askOrbit}
             commands={commands}
         />;
     }

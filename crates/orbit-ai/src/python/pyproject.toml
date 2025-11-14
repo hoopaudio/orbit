@@ -43,4 +43,5 @@ markers = [
     "unit: Unit tests",
     "integration: Integration tests",
     "slow: Slow tests that require external services",
+    "asyncio: Async tests",
 ]

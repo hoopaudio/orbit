@@ -6,15 +6,15 @@ import os
 from dataclasses import dataclass, field, fields
 from typing import Annotated
 
-from . import prompts
+from . import prompt
 
 
 @dataclass(kw_only=True)
-class Context:
+class OrbitContext:
     """The context for the agent."""
 
     system_prompt: str = field(
-        default=prompts.SYSTEM_PROMPT,
+        default=prompt.ORBIT_SYSTEM_PROMPT,
         metadata={
             "description": "The system prompt to use for the agent's interactions. "
                            "This prompt sets the context and behavior for the agent."
@@ -22,7 +22,7 @@ class Context:
     )
 
     model: Annotated[str, {"__template_metadata__": {"kind": "llm"}}] = field(
-        default="anthropic/claude-sonnet-4-5-20250929",
+        default="google_vertexai/gemini-2.5-flash",
         metadata={
             "description": "The name of the language model to use for the agent's main interactions. "
                            "Should be in the form: provider/model-name."
@@ -33,6 +33,13 @@ class Context:
         default=10,
         metadata={
             "description": "The maximum number of search results to return for each search query."
+        },
+    )
+
+    detailed_logs: bool = field(
+        default=False,
+        metadata={
+            "description": "Whether to enable detailed debug logging."
         },
     )
 

@@ -25,7 +25,7 @@ interface ProducerModeProps {
     handleTextareaInput: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
     handleSubmit: (e: React.FormEvent) => void;
     handleProcessQuery: (query: string) => void;
-    processQuery?: (query: string, selectedTracks?: any[]) => Promise<void>;
+    askOrbit?: (query: string, selectedTracks?: any[]) => Promise<void>;
     commands: Command[];
 }
 
@@ -44,7 +44,7 @@ export const ProducerMode: React.FC<ProducerModeProps> = ({
     handleTextareaInput,
     handleSubmit: originalHandleSubmit,
     handleProcessQuery: originalHandleProcessQuery,
-    processQuery,
+    askOrbit,
     commands,
 }) => {
     const [suggestions, setSuggestions] = useState<Command[]>([]);
@@ -131,9 +131,9 @@ export const ProducerMode: React.FC<ProducerModeProps> = ({
 
     // Enhanced query processing that includes track context
     const handleProcessQueryWithTracks = (queryString: string) => {
-        if (processQuery) {
-            // Use the direct processQuery function with track context
-            processQuery(queryString, selectedTracks);
+        if (askOrbit) {
+            // Use the direct askOrbit function with track context
+            askOrbit(queryString, selectedTracks);
         } else {
             // Fallback to original function (for command handling like /producer, /standard)
             originalHandleProcessQuery(queryString);

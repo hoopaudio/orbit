@@ -18,53 +18,20 @@ from langgraph.graph import StateGraph, add_messages
 from langgraph.managed import IsLastStep
 from langgraph.prebuilt import ToolNode
 from langgraph.runtime import Runtime
+from langgraph.checkpoint.memory import MemorySaver
 from typing_extensions import Annotated
 
 from .prompt import ORBIT_SYSTEM_PROMPT
+from .context import OrbitContext
 
 logger = logging.getLogger(__name__)
-
-
-@dataclass
-class OrbitContext:
-    """Configuration context for the Orbit Agent."""
-
-    system_prompt: str = field(
-        default=ORBIT_SYSTEM_PROMPT,
-        metadata={
-            "description": "The system prompt for music production control. "
-                           "This prompt defines the agent's behavior and capabilities."
-        },
-    )
-
-    model: str = field(
-        default="anthropic/claude-sonnet-4-5-20250929",
-        metadata={
-            "description": "The language model to use for the agent. "
-                           "Should be in the form: provider/model-name."
-        },
-    )
-
-    detailed_logs: bool = field(
-        default=False,
-        metadata={
-            "description": "Whether to enable detailed debug logging."
-        },
-    )
-
-    max_retries: int = field(
-        default=3,
-        metadata={
-            "description": "Maximum number of retries for failed operations."
-        },
-    )
 
 
 @dataclass
 class OrbitInputState:
     """Input state for the Orbit Agent."""
 
-    messages: Annotated[Sequence[AnyMessage], add_messages] = field(
+    messages: Annotated[Sequence[AnyMessage], add_messages] = field(  # type: ignore
         default_factory=list
     )
     """Messages tracking the agent's conversation state."""
@@ -93,10 +60,11 @@ async def call_model(
     initializes the model with tools, and processes the response.
     """
     # Initialize the model with tool binding
-    tools = getattr(runtime, '_tools', [])
+    from .tools import ABLETON_TOOLS
+
     model = load_chat_model(runtime.context.model)
-    if tools:
-        model = model.bind_tools(tools)
+    if ABLETON_TOOLS:
+        model = model.bind_tools(ABLETON_TOOLS)
 
     # Format the system prompt with current time
     system_message = runtime.context.system_prompt.format(
@@ -154,37 +122,37 @@ class OrbitAgent:
 
     def __init__(
             self,
-            tools: List[BaseTool],
             context: OrbitContext = None,
     ):
         """Initialize the Orbit React Agent.
 
         Args:
-            tools: List of LangChain tools for Ableton control
             context: Configuration context for the agent
         """
-        self.tools = tools
         self.context = context or OrbitContext()
         self.graph = self._build_graph()
 
-        logger.info(f"OrbitAgent initialized with {len(tools)} tools")
+        # Import tools to get count for logging
+        from .tools import ABLETON_TOOLS
+
+        logger.info(f"OrbitAgent initialized with {len(ABLETON_TOOLS)} tools")
 
     def _build_graph(self):
         """Build and compile the React Agent graph."""
         try:
             logger.debug("Building OrbitAgent React graph")
 
+            # Import tools directly
+            from .tools import ABLETON_TOOLS
+
             # Create the state graph with context
             builder = StateGraph(
-                OrbitState,
-                input_schema=OrbitInputState,
-                context_schema=OrbitContext
+                OrbitState, input_schema=OrbitInputState, context_schema=OrbitContext
             )
 
             # Add nodes
             builder.add_node(call_model)
-            if self.tools:
-                builder.add_node("tools", ToolNode(self.tools))
+            builder.add_node("tools", ToolNode(ABLETON_TOOLS))
 
             # Set the entry point
             builder.add_edge("__start__", "call_model")
@@ -193,36 +161,30 @@ class OrbitAgent:
             builder.add_conditional_edges("call_model", route_model_output)
 
             # Add edge from tools back to call_model
-            if self.tools:
-                builder.add_edge("tools", "call_model")
+            builder.add_edge("tools", "call_model")
 
-            # Compile the graph
-            graph = builder.compile(name="Orbit React Agent")
-            logger.info("OrbitAgent React graph compiled successfully")
+            # Compile the graph with memory saver for conversation continuity
+            memory = MemorySaver()
+            graph = builder.compile(checkpointer=memory, name="Orbit React Agent")
+            logger.info("OrbitAgent React graph compiled successfully with memory")
             return graph
 
         except Exception as ex:
             logger.error(f"Failed to build OrbitAgent graph: {ex}")
             raise
 
-    async def stream(self, user_input: str, **kwargs):
+    async def stream(self, user_input: str, thread_id: str = "default", **kwargs):
         """Stream the agent's response for a user input."""
-        # Store tools in runtime for access in call_model
-        runtime = Runtime(context=self.context)
-        runtime._tools = self.tools
+        # Create input with new user message - LangGraph will handle state accumulation
+        input_state = {"messages": [{"role": "user", "content": user_input}]}
 
-        # Create initial state
-        initial_state = OrbitInputState(
-            messages=[{"role": "user", "content": user_input}]
-        )
-
-        # Stream through the graph
+        # Stream through the graph with thread_id for conversation continuity
         try:
             async for event in self.graph.astream(
-                    initial_state,
-                    config={"recursion_limit": 10},
-                    runtime=runtime,
-                    **kwargs
+                    input_state,
+                    config={"configurable": {"thread_id": thread_id}},
+                    context=self.context,
+                    **kwargs,
             ):
                 # Extract content from call_model responses
                 for node_name, node_output in event.items():

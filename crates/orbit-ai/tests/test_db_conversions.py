@@ -9,7 +9,7 @@ import os
 # Add the python package to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../python'))
 
-from orbit_ai.ableton_tools import linear_to_db, db_to_linear
+from orbit_ai import linear_to_db, db_to_linear
 
 
 class TestDBConversions(unittest.TestCase):
