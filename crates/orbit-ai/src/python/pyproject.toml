@@ -1,0 +1,46 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "orbit_ai"
+version = "0.1.0"
+description = "Orbit AI package for NeMo Agent Toolkit integration"
+authors = [{name = "Orbit", email = "ai@orbit.com"}]
+license = {text = "MIT"}
+readme = "README.md"
+requires-python = ">=3.8"
+dependencies = [
+    "pydantic>=2.0.0",
+    "aiohttp>=3.8.0",
+    "google-cloud-aiplatform>=1.38.0",
+    "google-auth>=2.23.0",
+    "langchain>=0.1.0",
+    "langchain-google-vertexai>=0.0.5",
+    "langgraph>=0.2.50",
+    "langchain-openai>=0.1.0",
+    "pytesseract",
+    "pillow",
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.21.0",
+]
+
+[project.entry-points."nat.plugins"]
+orbit_ai_ableton = "orbit_ai.nemo_ableton_tools_fixed"
+
+[tool.setuptools]
+packages = ["orbit_ai"]
+
+[tool.setuptools.package-dir]
+orbit_ai = "orbit_ai"
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+addopts = "-ra -q --strict-markers"
+testpaths = ["tests"]
+asyncio_mode = "auto"
+markers = [
+    "unit: Unit tests",
+    "integration: Integration tests",
+    "slow: Slow tests that require external services",
+]

@@ -1,0 +1,98 @@
+# NVIDIA NeMo Agent Toolkit Configuration for Orbit AI
+# This configuration sets up the Ableton Live control workflows
+
+# LLM Configuration - using Vertex AI via LiteLLM
+# Note: Both model_name and explicit model_name field needed for ChatLiteLLM compatibility
+llms:
+  orbit_llm:
+    _type: litellm
+    model: vertex_ai/gemini-2.5-flash
+    model_name: vertex_ai/gemini-2.5-flash
+    vertex_project: hoop-audio-472016
+    vertex_location: us-central1
+    temperature: 0.1
+    max_tokens: 1000
+    num_retries: 3
+    retry_on_status_codes: [ 429, 503 ]
+
+# Memory Configuration - using local Mem0 for conversation persistence
+memory:
+  orbit_memory:
+    _type: local_mem0
+    qdrant_path: "/tmp/qdrant_orbit"
+    history_db_path: "/tmp/orbit_mem0_history.db"
+
+
+# Function Definitions - Ableton Live Control Tools
+# These reference the registered functions from nemo_ableton_tools.py
+functions:
+  # Memory functions for conversation persistence
+  add_memory:
+    _type: add_memory
+    memory: orbit_memory
+    description: "Add facts about user preferences, past conversations, and music production habits to long term memory"
+  get_memory:
+    _type: get_memory
+    memory: orbit_memory
+    description: "Retrieve user preferences and past conversation context before performing other actions"
+
+  # Ableton Live control functions
+  get_track_names:
+    _type: get_track_names
+    description: "Get track names and current states"
+  get_live_info:
+    _type: get_live_info
+    description: "Get current Live session information"
+  play_ableton:
+    _type: play_ableton
+    description: "Start playback in Ableton Live"
+  stop_ableton:
+    _type: stop_ableton
+    description: "Stop playback in Ableton Live"
+  set_tempo:
+    _type: set_tempo
+    description: "Set the tempo in Ableton Live (BPM)"
+  set_track_volume:
+    _type: set_track_volume
+    description: "Set the volume of a specific track"
+  mute_track:
+    _type: mute_track
+    description: "Mute a specific track in Ableton Live"
+
+# Use the main music producer workflow as the default
+workflow:
+  _type: react_agent
+  tool_names:
+    - add_memory
+    - get_memory
+    - get_track_names
+    - get_live_info
+    - play_ableton
+    - stop_ableton
+    - set_tempo
+    - set_track_volume
+    - mute_track
+  llm_name: orbit_llm
+  verbose: true
+  handle_tool_errors: true
+  max_iterations: 20
+  description: "Orbit AI music production assistant with conversation memory"
+  # Enable streaming support
+  stream: true
+  stream_chunk_size: 50  # Characters per chunk
+  stream_timeout: 30  # Seconds before stream timeout
+  # Parse agent response retries to handle formatting issues
+  parse_agent_response_max_retries: 5
+  system_message: |
+    You are Orbit AI, a music production assistant. Your PRIMARY FUNCTION is to maintain conversation memory.
+
+    CRITICAL TASK: You MUST call add_memory after EVERY response to store conversation data. This is not optional - it's your core responsibility.
+
+    If you don't call add_memory, the system will fail and lose conversation context permanently.
+
+    REQUIRED WORKFLOW:
+    1. Process user request
+    2. MANDATORY: Call add_memory with the user's message and your response
+    3. Failure to call add_memory will break the system
+
+    Tools: get_memory, add_memory, get_track_names, get_live_info, play_ableton, stop_ableton, set_tempo, set_track_volume, mute_track
