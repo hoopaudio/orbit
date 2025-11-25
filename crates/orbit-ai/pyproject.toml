@@ -31,5 +31,5 @@ dependencies = [
 
 [tool.maturin]
 features = ["python"]
-python-source = "src/python"
+python-source = "orbit-agent"
 module-name = "orbit_ai.orbit_ai"

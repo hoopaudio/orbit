@@ -31,7 +31,7 @@ dependencies = [
 packages = ["orbit_ai"]
 
 [tool.setuptools.package-dir]
-orbit_ai = "orbit_ai"
+orbit_ai = "src/orbit_ai"
 
 [tool.pytest.ini_options]
 minversion = "7.0"

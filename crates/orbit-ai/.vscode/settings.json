@@ -1,17 +1,15 @@
 {
-    "python.defaultInterpreterPath": "/Users/cuthlehoop/projects/orbit/crates/orbit-ai/.venv/bin/python",
-    "python.terminal.activateEnvironment": true,
-    "python.linting.enabled": true,
-    "python.linting.pylintEnabled": false,
-    "python.linting.flake8Enabled": false,
-    "python.analysis.typeCheckingMode": "basic",
-    "python.analysis.extraPaths": [
-        "/Users/cuthlehoop/projects/orbit/crates/orbit-ai/src/python",
-        "/Users/cuthlehoop/projects/orbit/crates/orbit-ai/.venv/lib/python3.12/site-packages"
-    ],
-    "python.analysis.autoImportCompletions": true,
-    "python.testing.pytestEnabled": true,
-    "python.testing.pytestArgs": [
-        "tests"
-    ]
+  "python.defaultInterpreterPath": "/Users/cuthlehoop/projects/orbit/crates/orbit-ai/.venv/bin/python",
+  "python.terminal.activateEnvironment": true,
+  "python.linting.enabled": true,
+  "python.linting.pylintEnabled": false,
+  "python.linting.flake8Enabled": false,
+  "python.analysis.typeCheckingMode": "basic",
+  "python.analysis.extraPaths": [
+    "/Users/cuthlehoop/projects/orbit/crates/orbit-ai/orbit-agent/src",
+    "/Users/cuthlehoop/projects/orbit/crates/orbit-ai/.venv/lib/python3.12/site-packages"
+  ],
+  "python.analysis.autoImportCompletions": true,
+  "python.testing.pytestEnabled": true,
+  "python.testing.pytestArgs": ["tests"]
 }
