@@ -1,2 +1,0 @@
-[nat.plugins]
-orbit_ai_ableton = orbit_ai.nemo_ableton_tools_fixed

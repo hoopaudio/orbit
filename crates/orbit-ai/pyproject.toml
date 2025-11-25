@@ -27,8 +27,7 @@ dependencies = [
     "pytest>=8.4.2",
 ]
 
-[project.entry-points."nat.components"]
-orbit_ai = "orbit_ai.nemo_ableton_tools"
+
 
 [tool.maturin]
 features = ["python"]

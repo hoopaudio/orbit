@@ -1,11 +1,7 @@
 name: orbit_ai
 version: "0.1.0"
-description: "Orbit AI music production plugin for NeMo Agent Toolkit"
+description: "Orbit AI music production assistant"
 author: "Orbit Team"
-
-# Plugin components
-functions:
-  - orbit_ai.nemo_ableton_tools:ableton_control_functions
 
 # Dependencies
 dependencies:

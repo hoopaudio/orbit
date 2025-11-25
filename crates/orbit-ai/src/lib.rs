@@ -2,7 +2,6 @@ pub mod langchain;
 #[cfg(test)]
 pub mod langchain_test;
 pub mod models;
-pub mod nemo_agent;
 pub mod ocr;
 pub mod orbit_agent;
 #[cfg(test)]
@@ -14,7 +13,6 @@ pub mod tools;
 
 // Re-export commonly used items
 pub use langchain::LangChainChatBot;
-pub use nemo_agent::{NemoAgent, NemoAgentError};
 pub use ocr::OcrService;
 pub use orbit_agent::OrbitAgent;
 pub use screenshot::ScreenshotService;

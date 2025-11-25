@@ -1,5 +1,5 @@
 """
-Unit tests for OrbitAgent with NeMo Agent Toolkit integration.
+Unit tests for OrbitAgent.
 Tests the agent's ability to handle streaming, tool calling, and error recovery.
 """
 
