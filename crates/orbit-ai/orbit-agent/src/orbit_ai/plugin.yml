@@ -1,9 +1,0 @@
-name: orbit_ai
-version: "0.1.0"
-description: "Orbit AI music production assistant"
-author: "Orbit Team"
-
-# Dependencies
-dependencies:
-  - aiohttp
-  - pydantic

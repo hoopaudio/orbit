@@ -1,0 +1,10 @@
+# yaml-language-server: $schema=
+name: orbit_agent
+version: "0.1.0"
+description: "Orbit Agent - AI music production assistant for Ableton Live"
+author: "Orbit Team"
+
+# Dependencies
+dependencies:
+  - aiohttp
+  - pydantic

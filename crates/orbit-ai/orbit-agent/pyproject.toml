@@ -3,9 +3,9 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "orbit_ai"
+name = "orbit_agent"
 version = "0.1.0"
-description = "Orbit AI package for AI agent integration"
+description = "Orbit Agent package for AI agent integration with Ableton Live"
 authors = [{name = "Orbit", email = "ai@orbit.com"}]
 license = {text = "MIT"}
 readme = "README.md"
@@ -28,10 +28,10 @@ dependencies = [
 
 
 [tool.setuptools]
-packages = ["orbit_ai"]
+packages = ["orbit_agent"]
 
 [tool.setuptools.package-dir]
-orbit_ai = "src/orbit_ai"
+orbit_agent = "src/orbit_agent"
 
 [tool.pytest.ini_options]
 minversion = "7.0"
