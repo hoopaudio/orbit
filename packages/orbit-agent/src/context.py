@@ -17,7 +17,7 @@ class OrbitContext:
         default=prompt.ORBIT_SYSTEM_PROMPT,
         metadata={
             "description": "The system prompt to use for the agent's interactions. "
-                           "This prompt sets the context and behavior for the agent."
+            "This prompt sets the context and behavior for the agent."
         },
     )
 
@@ -25,22 +25,13 @@ class OrbitContext:
         default="google_vertexai/gemini-2.5-flash",
         metadata={
             "description": "The name of the language model to use for the agent's main interactions. "
-                           "Should be in the form: provider/model-name."
-        },
-    )
-
-    max_search_results: int = field(
-        default=10,
-        metadata={
-            "description": "The maximum number of search results to return for each search query."
+            "Should be in the form: provider/model-name."
         },
     )
 
     detailed_logs: bool = field(
         default=False,
-        metadata={
-            "description": "Whether to enable detailed debug logging."
-        },
+        metadata={"description": "Whether to enable detailed debug logging."},
     )
 
     def __post_init__(self) -> None:

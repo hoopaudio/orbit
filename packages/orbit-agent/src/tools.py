@@ -7,7 +7,7 @@ import logging
 import math
 import os
 import sys
-from typing import Any, List, Optional
+from typing import Any, List
 
 from langchain_core.tools import BaseTool
 from pydantic import BaseModel, Field
