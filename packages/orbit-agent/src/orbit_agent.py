@@ -12,7 +12,7 @@ from typing import Dict, List, Literal, Sequence, cast
 
 from langchain.chat_models import init_chat_model
 from langchain_core.language_models import BaseChatModel
-from langchain_core.messages import AIMessage, AnyMessage
+from langchain_core.messages import AIMessage, AnyMessage, HumanMessage
 from langchain_core.tools import BaseTool
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import StateGraph, add_messages
@@ -176,7 +176,7 @@ class OrbitAgent:
     async def stream(self, user_input: str, thread_id: str = "default", **kwargs):
         """Stream the agent's response for a user input."""
         # Create input with new user message - LangGraph will handle state accumulation
-        input_state = {"messages": [{"role": "user", "content": user_input}]}
+        input_state = OrbitInputState(messages=[HumanMessage(content=user_input)])
 
         # Stream through the graph with thread_id for conversation continuity
         try:
