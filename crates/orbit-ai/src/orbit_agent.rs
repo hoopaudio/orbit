@@ -14,7 +14,11 @@ impl OrbitAgent {
             let path = sys.getattr("path")?;
 
             // Get the directory where our Python module is located
-            let module_dir = concat!(env!("CARGO_MANIFEST_DIR"), "/orbit-agent/src");
+            // CARGO_MANIFEST_DIR is crates/orbit-ai, so we go up to root then into packages
+            let module_dir = concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/../../packages/orbit-agent/src"
+            );
             path.call_method1("append", (module_dir,))?;
 
             // Import our Python OrbitAgent module
