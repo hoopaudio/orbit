@@ -31,7 +31,7 @@ dependencies = [
 packages = ["orbit_agent"]
 
 [tool.setuptools.package-dir]
-orbit_agent = "src/orbit_agent"
+orbit_agent = "src"
 
 [tool.pytest.ini_options]
 minversion = "7.0"

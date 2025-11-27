@@ -14,15 +14,15 @@ from langchain.chat_models import init_chat_model
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import AIMessage, AnyMessage
 from langchain_core.tools import BaseTool
+from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import StateGraph, add_messages
 from langgraph.managed import IsLastStep
 from langgraph.prebuilt import ToolNode
 from langgraph.runtime import Runtime
-from langgraph.checkpoint.memory import MemorySaver
 from typing_extensions import Annotated
 
-from .prompt import ORBIT_SYSTEM_PROMPT
 from .context import OrbitContext
+from .prompt import ORBIT_SYSTEM_PROMPT
 
 logger = logging.getLogger(__name__)
 
@@ -52,7 +52,7 @@ def load_chat_model(fully_specified_name: str) -> BaseChatModel:
 
 
 async def call_model(
-        state: OrbitState, runtime: Runtime[OrbitContext]
+    state: OrbitState, runtime: Runtime[OrbitContext]
 ) -> Dict[str, List[AIMessage]]:
     """Call the LLM for the Orbit Agent.
 
@@ -121,8 +121,8 @@ class OrbitAgent:
     """React Agent for Orbit music production control."""
 
     def __init__(
-            self,
-            context: OrbitContext = None,
+        self,
+        context: OrbitContext | None = None,
     ):
         """Initialize the Orbit React Agent.
 
@@ -181,10 +181,10 @@ class OrbitAgent:
         # Stream through the graph with thread_id for conversation continuity
         try:
             async for event in self.graph.astream(
-                    input_state,
-                    config={"configurable": {"thread_id": thread_id}},
-                    context=self.context,
-                    **kwargs,
+                input_state,
+                config={"configurable": {"thread_id": thread_id}},
+                context=self.context,
+                **kwargs,
             ):
                 # Extract content from call_model responses
                 for node_name, node_output in event.items():

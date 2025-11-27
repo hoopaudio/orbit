@@ -7,14 +7,16 @@ import logging
 import math
 import os
 import sys
-from typing import List, Any, Optional
+from typing import Any, List, Optional
 
 from langchain_core.tools import BaseTool
 from pydantic import BaseModel, Field
 
 # Add orbit-connector to path so we can import the OSC client
 current_dir = os.path.dirname(os.path.abspath(__file__))
-orbit_connector_path = os.path.join(current_dir, "..", "..", "..", "..", "..", "orbit-connector", "src", "python")
+orbit_connector_path = os.path.join(
+    current_dir, "..", "..", "..", "crates", "orbit-connector", "src", "python"
+)
 orbit_connector_path = os.path.abspath(orbit_connector_path)
 
 if orbit_connector_path not in sys.path:
@@ -52,17 +54,22 @@ def db_to_linear(db_value: float) -> float:
 # Input models for tools
 class TempoInput(BaseModel):
     """Input for setting tempo."""
+
     bpm: float = Field(description="The tempo in beats per minute (20-999 BPM)")
 
 
 class TrackVolumeInput(BaseModel):
     """Input for setting track volume."""
+
     track_id: int = Field(description="The track number (0-based index)")
-    volume: float = Field(description="Volume level from 0.0 (silent) to 1.0 (full volume)")
+    volume: float = Field(
+        description="Volume level from 0.0 (silent) to 1.0 (full volume)"
+    )
 
 
 class TrackControlInput(BaseModel):
     """Input for track control operations."""
+
     track_id: int = Field(description="The track number (0-based index)")
 
 
@@ -99,7 +106,9 @@ class GetLiveInfoTool(BaseTool):
     """Tool to get current Live session information."""
 
     name: str = "get_live_info"
-    description: str = "Get current Live session information including tempo, playing state, etc."
+    description: str = (
+        "Get current Live session information including tempo, playing state, etc."
+    )
 
     def _run(self) -> dict:
         """Get current Live session information."""
