@@ -624,10 +624,14 @@ pub async fn get_ableton_tracks() -> Result<String, String> {
 }
 
 #[tauri::command]
-pub async fn ask_orbit(message: &str) -> Result<String, String> {
-    let agent = OrbitAgent::new().map_err(|e| format!("Failed to create OrbitAgent: {}", e))?;
-    agent
-        .run(message, Some("thread-1"))
-        .await
-        .map_err(|e| format!("Agent run failed: {}", e))
+pub async fn ask_orbit(message: String) -> Result<String, String> {
+    // Run in spawn_blocking since Python GIL blocks the thread
+    tokio::task::spawn_blocking(move || {
+        let agent = OrbitAgent::new().map_err(|e| format!("Failed to create OrbitAgent: {}", e))?;
+        agent
+            .run(&message, Some("thread-1"))
+            .map_err(|e| format!("Agent run failed: {}", e))
+    })
+    .await
+    .map_err(|e| format!("Task failed: {}", e))?
 }
